@@ -1,30 +1,19 @@
 "use client";
 
+import { Check } from "lucide-react";
+
 export function ExerciseToggle({ exercise, workoutId, isLinked, linkId }) {
   async function toggle() {
-    console.log("🟢 TOGGLE CLICK", {
-      exerciseId: exercise.id,
-      workoutId,
-      isLinked,
-      linkId,
-    });
-
     if (isLinked) {
-      // REMOVE using workout_exercises.id
-      const res = await fetch(`/api/workout_exercises/${linkId}`, {
+      await fetch(`/api/workout_exercises/${linkId}`, {
         method: "DELETE",
       });
-
-      console.log("🟢 DELETE RESPONSE STATUS:", res.status);
     } else {
-      // ADD using exercise.id
-      const res = await fetch(`/api/workout_exercises`, {
+      await fetch(`/api/workout_exercises`, {
         method: "POST",
         body: JSON.stringify({ workoutId, exerciseId: exercise.id }),
         headers: { "Content-Type": "application/json" },
       });
-
-      console.log("🟢 ADD RESPONSE STATUS:", res.status);
     }
 
     window.location.reload();
@@ -33,18 +22,29 @@ export function ExerciseToggle({ exercise, workoutId, isLinked, linkId }) {
   return (
     <button
       onClick={toggle}
-      className={`p-4 w-full rounded flex justify-between ${
-        isLinked ? "bg-green-600" : "bg-[#222]"
-      }`}
+      className={`
+        w-full flex items-center justify-between
+        px-4 py-3 rounded-xl border transition-all
+        ${isLinked ? "bg-yellow-400/20 border-yellow-400" : "border-[#333]"}
+        hover:border-yellow-400
+      `}
     >
-      <span>
-        <div className="font-semibold">{exercise.name}</div>
+      {/* Left side */}
+      <div className="text-left">
+        <div className="font-semibold text-white">{exercise.name}</div>
         <div className="text-gray-400 text-sm">{exercise.muscle_group}</div>
-      </span>
+      </div>
 
-      <span className="text-sm opacity-70">
-        {isLinked ? "Remove" : "Add"}
-      </span>
+      {/* Right side checkmark */}
+      <div
+        className={`
+          w-6 h-6 flex items-center justify-center rounded-full border
+          transition-all
+          ${isLinked ? "bg-yellow-400 border-yellow-400" : "border-gray-600"}
+        `}
+      >
+        {isLinked && <Check size={16} className="text-black" />}
+      </div>
     </button>
   );
 }

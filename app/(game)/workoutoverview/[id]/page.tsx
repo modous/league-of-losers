@@ -43,31 +43,24 @@ export default async function WorkoutDetail({ params }) {
   );
 
   return (
-    <div className="p-6 text-white">
-      <h1 className="text-3xl font-bold mb-4">{workout?.name}</h1>
+  <div className="min-h-screen bg-black text-white p-6">
+    <div className="max-w-2xl mx-auto">     {/* << CENTERED LIKE NEW WORKOUT PAGE */}
+
+      <h1 className="text-3xl font-bold mb-6">{workout.name}</h1>
 
       <div className="space-y-3">
-        {allExercises?.map((exercise) => {
-          const isLinked = linked.has(exercise.id);
-          const linkId = linkMap.get(exercise.id) || null;
-
-          console.log("📄 RENDER exercise:", {
-            exerciseId: exercise.id,
-            isLinked,
-            linkId,
-          });
-
-          return (
-            <ExerciseToggle
-              key={exercise.id}
-              exercise={exercise}
-              workoutId={id}
-              isLinked={isLinked}
-              linkId={linkId}
-            />
-          );
-        })}
+        {allExercises?.map((exercise) => (
+          <ExerciseToggle
+            key={exercise.id}
+            exercise={exercise}
+            workoutId={id}
+            isLinked={linked.has(exercise.id)}
+            linkId={linkMap.get(exercise.id)}
+          />
+        ))}
       </div>
+
     </div>
-  );
+  </div>
+);
 }
