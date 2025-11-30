@@ -1,5 +1,6 @@
 import { createServerSupabase } from "@/lib/supabase-server";
 import { ExerciseToggle } from "./_components/ExerciseToggle";
+import { BackButton } from "./_components/BackButton";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -45,7 +46,7 @@ export default async function WorkoutDetail({ params }: { params: { id: string }
   return (
   <div className="min-h-screen bg-black text-white p-6">
     <div className="max-w-2xl mx-auto">     {/* << CENTERED LIKE NEW WORKOUT PAGE */}
-
+ <BackButton /> 
       <h1 className="text-3xl font-bold mb-6">{workout.name}</h1>
 
       <div className="space-y-3">
