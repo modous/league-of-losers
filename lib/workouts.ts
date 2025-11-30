@@ -271,6 +271,20 @@ export async function getAllExercises() {
 }
 
 
+type SupabaseWorkoutRow = {
+  id: string;
+  name: string;
+  date: string;
+  muscle_groups: string[];
+  workout_exercises?: {
+    id: string;
+    exercise_id: string;
+    notes: string | null;
+    sets: WorkoutSet[];
+    exercise: Exercise | Exercise[];
+  }[];
+};
+
 export async function getAllWorkouts(): Promise<Workout[]> {
   const db = supabase();
 
@@ -300,10 +314,10 @@ export async function getAllWorkouts(): Promise<Workout[]> {
 
   if (error || !data) return [];
 
-  return data.map((w: any) => ({
+  return (data as SupabaseWorkoutRow[]).map((w) => ({
     ...w,
     exercises:
-      (w.workout_exercises ?? []).map((row: any) => ({
+      (w.workout_exercises ?? []).map((row) => ({
         id: row.id,
         exercise_id: row.exercise_id,
         notes: row.notes,

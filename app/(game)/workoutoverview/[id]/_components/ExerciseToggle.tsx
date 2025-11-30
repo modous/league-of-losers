@@ -2,7 +2,20 @@
 
 import { Check } from "lucide-react";
 
-export function ExerciseToggle({ exercise, workoutId, isLinked, linkId }) {
+type Exercise = {
+  id: string | number;
+  name: string;
+  muscle_group: string;
+};
+
+type ExerciseToggleProps = {
+  exercise: Exercise;
+  workoutId: string | number;
+  isLinked: boolean;
+  linkId: string | number;
+};
+
+export function ExerciseToggle({ exercise, workoutId, isLinked, linkId }: ExerciseToggleProps) {
   async function toggle() {
     if (isLinked) {
       await fetch(`/api/workout_exercises/${linkId}`, {

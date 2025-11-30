@@ -4,7 +4,7 @@ import { ExerciseToggle } from "./_components/ExerciseToggle";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default async function WorkoutDetail({ params }) {
+export default async function WorkoutDetail({ params }: { params: { id: string } }) {
   const { id } = await params;
   const supabase = await createServerSupabase();
 
