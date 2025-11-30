@@ -46,7 +46,7 @@ export default async function WorkoutOverviewPage() {
             {workouts.map((workout) => (
               <Link
                 key={workout.id}
-                href={`/workouts/${workout.id}`}
+                href={`/workoutoverview/${workout.id}`}
                 className="block bg-zinc-900 border border-zinc-800 p-4 rounded-xl hover:bg-zinc-800 transition"
               >
                 <h2 className="text-xl font-semibold">
