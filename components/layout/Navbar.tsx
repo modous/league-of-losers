@@ -19,6 +19,7 @@ export default function Navbar() {
     { name: 'Workouts', href: '/workouts' },
     { name: 'Exercises', href: '/exercises' },
     { name: 'Profiel', href: '/profile' },
+    { name: 'Workouts Overzicht', href: '/workoutoverview' },
   ];
 
   async function handleLogout() {

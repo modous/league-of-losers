@@ -269,3 +269,48 @@ export async function getAllExercises() {
 
   return data;
 }
+
+
+export async function getAllWorkouts(): Promise<Workout[]> {
+  const db = supabase();
+
+  const { data, error } = await db
+    .from("workouts")
+    .select(`
+      id,
+      name,
+      date,
+      muscle_groups,
+      workout_exercises:workout_exercises (
+        id,
+        exercise_id,
+        notes,
+        sets,
+        exercise:exercise_id (
+          id,
+          name,
+          category,
+          muscle_group,
+          image_url,
+          description
+        )
+      )
+    `)
+    .order("date", { ascending: false });
+
+  if (error || !data) return [];
+
+  return data.map((w: any) => ({
+    ...w,
+    exercises:
+      (w.workout_exercises ?? []).map((row: any) => ({
+        id: row.id,
+        exercise_id: row.exercise_id,
+        notes: row.notes,
+        sets: row.sets,
+        exercise: Array.isArray(row.exercise)
+          ? row.exercise[0]
+          : row.exercise,
+      })) || [],
+  }));
+}
