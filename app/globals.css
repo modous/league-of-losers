@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    @apply m-0 p-0 box-border;
+  }
+
+  body {
+    @apply bg-black text-slate-200 antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    line-height: 1.6;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold text-slate-50 leading-tight mb-2;
+  }
+
+  h1 {
+    @apply text-2xl sm:text-3xl md:text-4xl;
+  }
+
+  h2 {
+    @apply text-xl sm:text-2xl md:text-3xl;
+  }
+
+  h3 {
+    @apply text-lg sm:text-xl md:text-2xl;
+  }
+
+  p {
+    @apply mb-4;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  textarea,
+  select {
+    @apply w-full px-3 py-2 sm:px-4 sm:py-3 border-2 border-slate-600 rounded-lg text-sm sm:text-base transition-all bg-black text-slate-50;
+  }
+
+  input[type="text"]:focus,
+  input[type="email"]:focus,
+  input[type="password"]:focus,
+  input[type="number"]:focus,
+  textarea:focus,
+  select:focus {
+    @apply outline-none border-yellow-400 ring-4 ring-yellow-400/10;
+  }
+
+  input[type="text"]::placeholder,
+  input[type="email"]::placeholder,
+  input[type="password"]::placeholder,
+  input[type="number"]::placeholder,
+  textarea::placeholder {
+    @apply text-slate-500;
+  }
+
+  button {
+    @apply cursor-pointer font-semibold transition-all border-0 rounded-lg px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base;
+  }
+
+  button:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  a {
+    @apply text-blue-600 no-underline transition-colors hover:text-blue-700 hover:underline;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-yellow-300 text-black font-semibold px-4 py-2 sm:px-6 sm:py-3 rounded-lg hover:bg-yellow-400 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5;
+  }
+
+  .btn-primary:disabled {
+    @apply hover:translate-y-0 hover:shadow-sm;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-200 text-black font-semibold px-4 py-2 sm:px-6 sm:py-3 rounded-lg hover:bg-gray-300 transition-colors;
+  }
+
+  .btn-success {
+    @apply bg-green-500 text-white font-semibold px-4 py-2 sm:px-6 sm:py-3 rounded-lg hover:bg-green-600 transition-colors shadow-sm;
+  }
+
+  .btn-danger {
+    @apply bg-red-500 text-white font-semibold px-4 py-2 sm:px-6 sm:py-3 rounded-lg hover:bg-red-600 transition-colors shadow-sm;
+  }
+
+  .card {
+    @apply bg-slate-800 rounded-lg border border-slate-700 p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow;
+  }
+
+  .container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6;
+  }
+
+  .spinner {
+    @apply border-4 border-gray-200 border-t-yellow-400 rounded-full w-8 h-8 animate-spin;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
