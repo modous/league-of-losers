@@ -122,22 +122,145 @@ export async function getWorkoutsByDate(date: string): Promise<Workout[]> {
 // --------------------------------------------------
 // GET WEEK WORKOUTS
 // --------------------------------------------------
+
+interface ExerciseLog {
+  reps: number;
+  weight: number;
+  created_at?: string;
+}
+
+interface WorkoutExerciseBase {
+  exercise_id: string;
+}
+
+interface WorkoutWithStatsBase {
+  id: string;
+  date: string;
+  name: string;
+  muscle_groups: string[];
+  workout_exercises?: WorkoutExerciseBase[];
+}
+
 export async function getWeekWorkouts(start: string, end: string) {
   const db = supabase();
 
-  const { data } = await db
+  console.log("🔵 [getWeekWorkouts] Fetching workouts between:", start, "and", end);
+
+  const { data: workouts } = await db
     .from("workouts")
-    .select("id, date, name, muscle_groups")
+    .select(`
+      id, 
+      date, 
+      name, 
+      muscle_groups,
+      workout_exercises (
+        exercise_id
+      )
+    `)
     .gte("date", start)
     .lte("date", end)
     .order("date");
 
-  return (
-    data?.map((w) => ({
-      ...w,
-      trained: true,
+  console.log("🔵 [getWeekWorkouts] Workouts found:", workouts?.length);
+  console.log("🔵 [getWeekWorkouts] Workouts data:", JSON.stringify(workouts, null, 2));
+
+  if (!workouts || workouts.length === 0) return [];
+
+  // Get all exercise IDs from all workouts
+  const allExerciseIds = workouts.flatMap(w => 
+    (w.workout_exercises || []).map((we: WorkoutExerciseBase) => we.exercise_id)
+  );
+
+  console.log("🔵 [getWeekWorkouts] All exercise IDs:", allExerciseIds);
+
+  if (allExerciseIds.length === 0) {
+    console.log("🔵 [getWeekWorkouts] No exercises found in workouts");
+    return workouts.map(w => ({
+      id: w.id,
+      date: w.date,
+      name: w.name,
+      muscle_groups: w.muscle_groups,
+      trained: false,
       exercises_count: 0,
-    })) ?? []
+      calories: 0,
+      intensity: 0,
+    }));
+  }
+
+  // Fetch all exercise logs for these exercises (no date filter - we want all logs for these exercises)
+  const { data: allLogs } = await db
+    .from("exercise_logs")
+    .select("exercise_id, reps, weight, created_at")
+    .in("exercise_id", allExerciseIds);
+
+  console.log("🔵 [getWeekWorkouts] Exercise logs found:", allLogs?.length);
+  console.log("🔵 [getWeekWorkouts] Exercise logs:", JSON.stringify(allLogs, null, 2));
+
+  // Group logs by exercise_id (we match by exercise, not by date)
+  const logsByExercise = new Map<string, ExerciseLog[]>();
+  
+  allLogs?.forEach((log: ExerciseLog & { exercise_id: string }) => {
+    console.log("🔵 [getWeekWorkouts] Processing log - Exercise:", log.exercise_id, "Created:", log.created_at);
+    
+    if (!logsByExercise.has(log.exercise_id)) {
+      logsByExercise.set(log.exercise_id, []);
+    }
+    
+    logsByExercise.get(log.exercise_id)?.push({
+      reps: log.reps,
+      weight: log.weight,
+      created_at: log.created_at
+    });
+  });
+
+  console.log("🔵 [getWeekWorkouts] Logs grouped by exercise:", Array.from(logsByExercise.keys()));
+
+  return (
+    (workouts as WorkoutWithStatsBase[] | null)?.map((w) => {
+      const exercises_count = w.workout_exercises?.length || 0;
+      
+      console.log("🔵 [getWeekWorkouts] Processing workout:", w.date, "- Exercises:", exercises_count);
+      
+      // Get all logs for this workout's exercises (from ANY time period)
+      const workoutLogs = (w.workout_exercises || []).flatMap((we: WorkoutExerciseBase) => 
+        logsByExercise.get(we.exercise_id) || []
+      );
+      
+      console.log("🔵 [getWeekWorkouts] Workout logs for", w.date, ":", workoutLogs.length);
+      
+      // Calculate total weight lifted
+      const totalWeight = workoutLogs.reduce((sum: number, log) => 
+        sum + (log.weight || 0) * (log.reps || 0), 0
+      );
+      
+      // Estimate calories (simple formula)
+      const calories = Math.round(totalWeight * 0.05);
+      
+      // Calculate intensity score
+      const totalSets = workoutLogs.length;
+      const totalReps = workoutLogs.reduce((sum: number, log) => sum + (log.reps || 0), 0);
+      const maxWeight = workoutLogs.length > 0 
+        ? Math.max(...workoutLogs.map((log) => log.weight || 0), 0)
+        : 0;
+      const intensity = exercises_count > 0 && workoutLogs.length > 0
+        ? Math.min(100, Math.round((totalSets * 5) + (totalReps * 0.5) + (maxWeight * 0.3)))
+        : 0;
+
+      const result = {
+        id: w.id,
+        date: w.date,
+        name: w.name,
+        muscle_groups: w.muscle_groups,
+        trained: workoutLogs.length > 0,
+        exercises_count,
+        calories,
+        intensity,
+      };
+
+      console.log("🔵 [getWeekWorkouts] Result for", w.date, ":", result);
+
+      return result;
+    }) ?? []
   );
 }
 
@@ -202,6 +325,8 @@ export async function createWorkout({
 export async function getWorkoutById(id: string): Promise<Workout | null> {
   const db = supabase();
 
+  console.log("🟦 [getWorkoutById] Fetching workout:", id);
+
   const { data, error } = await db
     .from("workouts")
     .select(`
@@ -211,6 +336,7 @@ export async function getWorkoutById(id: string): Promise<Workout | null> {
       muscle_groups,
       workout_exercises:workout_exercises (
         id,
+        workout_id,
         exercise_id,
         notes,
         sets,
@@ -225,32 +351,50 @@ export async function getWorkoutById(id: string): Promise<Workout | null> {
       )
     `)
     .eq("id", id)
-    .maybeSingle(); // <- was .single()
+    .maybeSingle();
 
-  if (error) {
-    console.error("getWorkoutById error:", error);
-    return null;
-  }
+  console.log("🟩 Raw data returned from Supabase:", JSON.stringify(data, null, 2));
+  if (error) console.log("🟥 Supabase error:", error);
 
   if (!data) {
-    console.warn("getWorkoutById: no workout found for id", id);
+    console.log("🟥 No workout found for id:", id);
     return null;
   }
 
- const exercises: WorkoutExercise[] = data.workout_exercises.map((row) => ({
-      id: row.id,
-      exercise_id: row.exercise_id,
-      notes: row.notes,
-      sets: row.sets,
-      exercise: Array.isArray(row.exercise)
-        ? row.exercise[0]
-        : row.exercise,
-    }));
+  console.log("🟦 Parsing workout_exercises...");
+  console.log(
+    "workout_exercises BEFORE fixing:",
+    JSON.stringify(data.workout_exercises, null, 2)
+  );
 
-  return {
+  const exercises: WorkoutExercise[] =
+    data.workout_exercises?.map((row) => {
+      console.log("➡️ Row BEFORE fixing:", row);
+
+      const fixed = {
+        id: row.id,
+        exercise_id: row.exercise_id,
+        notes: row.notes,
+        sets: row.sets,
+        exercise: Array.isArray(row.exercise)
+          ? row.exercise[0]
+          : row.exercise,
+      };
+
+      console.log("➡️ Row AFTER fixing:", fixed);
+      return fixed;
+    }) ?? [];
+
+  console.log("🟩 Final parsed exercises:", JSON.stringify(exercises, null, 2));
+
+  const finalWorkout = {
     ...data,
     exercises,
   };
+
+  console.log("🟧 FINAL WORKOUT OBJECT:", JSON.stringify(finalWorkout, null, 2));
+
+  return finalWorkout;
 }
 
 

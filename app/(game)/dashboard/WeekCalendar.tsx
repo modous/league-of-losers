@@ -9,6 +9,8 @@ interface WeekWorkout {
   trained: boolean;
   exercises_count: number;
   muscle_groups?: string[];
+  calories?: number;
+  intensity?: number;
 }
 
 export default function WeekCalendar() {
@@ -172,7 +174,7 @@ export default function WeekCalendar() {
                 key={dateStr}
                href={`/workouts/date/${dateStr}`}
                 className={`
-                  snap-center flex-shrink-0 w-[100px] sm:w-auto text-center p-4 rounded-lg border-2 transition-all 
+                  snap-center flex-shrink-0 w-[100px] sm:w-auto text-center p-4 rounded-lg border-2 transition-all no-underline hover:no-underline
                   ${
                     isToday(date)
                       ? "border-yellow-300 bg-zinc-900"
@@ -189,8 +191,20 @@ export default function WeekCalendar() {
                 </div>
 
                 {workout?.trained ? (
-                  <div className="text-green-400 text-xs mt-2">
-                    ✓ {workout.exercises_count} oefeningen
+                  <div className="mt-2 space-y-1">
+                    <div className="text-green-400 text-xs">
+                      ✓ {workout.exercises_count} oefeningen
+                    </div>
+                    {workout.calories !== undefined && workout.calories > 0 && (
+                      <div className="text-yellow-400 text-xs">
+                        🔥 {workout.calories} kcal
+                      </div>
+                    )}
+                    {workout.intensity !== undefined && workout.intensity > 0 && (
+                      <div className="text-blue-400 text-xs">
+                        💪 {workout.intensity}% intensiteit
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="text-slate-600 text-xs mt-2">

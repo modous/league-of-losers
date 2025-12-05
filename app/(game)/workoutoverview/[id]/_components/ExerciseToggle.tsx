@@ -37,7 +37,7 @@ export function ExerciseToggle({ exercise, workoutId, isLinked, linkId }: Exerci
       onClick={toggle}
       className={`
         w-full flex items-center justify-between
-        px-4 py-3 rounded-xl border transition-all
+        px-4 py-3 rounded-xl border transition-all no-underline
         ${isLinked ? "bg-yellow-400/20 border-yellow-400" : "border-[#333]"}
         hover:border-yellow-400
       `}
@@ -59,5 +59,7 @@ export function ExerciseToggle({ exercise, workoutId, isLinked, linkId }: Exerci
         {isLinked && <Check size={16} className="text-black" />}
       </div>
     </button>
+    
+    
   );
 }
