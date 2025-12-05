@@ -68,7 +68,11 @@
   }
 
   a {
-    @apply text-blue-600 no-underline transition-colors hover:text-blue-700 hover:underline;
+    @apply no-underline transition-colors;
+  }
+
+  button, a {
+    @apply no-underline;
   }
 }
 

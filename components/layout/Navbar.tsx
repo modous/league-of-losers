@@ -16,9 +16,10 @@ export default function Navbar() {
 
   const navItems = [
     { name: 'Dashboard', href: '/dashboard' },
-    { name: 'Workouts', href: '/workouts' },
+    { name: 'Workouts Overzicht', href: '/workoutoverview' },
     { name: 'Exercises', href: '/exercises' },
     { name: 'Profiel', href: '/profile' },
+   
   ];
 
   async function handleLogout() {
