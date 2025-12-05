@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
 import Image from "next/image";
+import Link from "next/link";
 
 export default async function ExercisesPage() {
   const cookieStore = await cookies();
@@ -27,12 +28,11 @@ export default async function ExercisesPage() {
     return <div className="p-6 text-white">Niet ingelogd.</div>;
   }
 
-  // Oefeningen ophalen
+  // Oefeningen ophalen (alle exercises, niet gefilterd op user_id)
   const { data: exercises, error } = await supabase
     .from("exercises")
     .select("*")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+    .order("name", { ascending: true });
 
   if (error) {
     console.log(error);
@@ -43,12 +43,12 @@ export default async function ExercisesPage() {
     <div className="p-6 text-white">
       <h1 className="text-3xl font-bold mb-4">Mijn Oefeningen</h1>
 
-      <a
+      <Link
         href="/exercises/new"
         className="bg-purple-600 px-4 py-2 rounded inline-block mb-6"
       >
         + Nieuwe oefening
-      </a>
+      </Link>
 
       {exercises.length === 0 && (
         <p>Je hebt nog geen oefeningen toegevoegd.</p>

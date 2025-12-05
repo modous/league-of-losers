@@ -17,10 +17,11 @@ export default function NewExercisePage() {
     const formData = new FormData(e.currentTarget);
     const name = formData.get("name") as string;
     const category = formData.get("category") as string;
+    const muscle_group = formData.get("muscle_group") as string;
     const description = formData.get("description") as string;
 
-    if (!name || !category) {
-      setError("Naam en categorie zijn verplicht");
+    if (!name || !category || !muscle_group) {
+      setError("Naam, categorie en spiergroep zijn verplicht");
       setLoading(false);
       return;
     }
@@ -29,6 +30,7 @@ export default function NewExercisePage() {
       const exercise = await createExercise({
         name,
         category,
+        muscle_group,
         description: description || undefined,
       });
 
@@ -75,12 +77,31 @@ export default function NewExercisePage() {
             className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
           >
             <option value="">Selecteer categorie</option>
-            <option value="chest">Borst</option>
-            <option value="back">Rug</option>
-            <option value="legs">Benen</option>
-            <option value="shoulders">Schouders</option>
-            <option value="arms">Armen</option>
-            <option value="core">Core</option>
+            <option value="Compound">Compound</option>
+            <option value="Isolation">Isolation</option>
+            <option value="Cardio">Cardio</option>
+            <option value="Stretching">Stretching</option>
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="muscle_group" className="mb-2 block font-medium">
+            Spiergroep *
+          </label>
+          <select
+            id="muscle_group"
+            name="muscle_group"
+            required
+            className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+          >
+            <option value="">Selecteer spiergroep</option>
+            <option value="Borst">Borst</option>
+            <option value="Rug">Rug</option>
+            <option value="Benen">Benen</option>
+            <option value="Schouders">Schouders</option>
+            <option value="Armen">Armen</option>
+            <option value="Core">Core</option>
+            <option value="Full Body">Full Body</option>
           </select>
         </div>
 

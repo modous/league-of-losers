@@ -31,6 +31,7 @@ export async function POST(request: Request) {
       .insert({
         user_id: user.id,
         exercise_id: exerciseId,
+        workout_date: new Date().toISOString().split('T')[0], // Add today's date
         reps: reps || 0,
         weight: weight || 0,
       })

@@ -33,13 +33,25 @@ export default async function WorkoutCompletePage({ params }: { params: { id: st
     `)
     .eq("workout_id", id);
 
-  // Fetch all exercise logs for this workout's exercises
+  // Fetch exercise logs for this workout's exercises, created in the last 10 minutes only
+  // (to capture only the workout session that just finished)
   const exerciseIds = workoutExercises?.map(we => we.exercise_id) || [];
+  const now = new Date();
+  const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+  
+  console.log("🔍 [Complete Page] Now:", now.toISOString());
+  console.log("🔍 [Complete Page] Ten minutes ago:", tenMinutesAgo.toISOString());
+  console.log("🔍 [Complete Page] Exercise IDs:", exerciseIds);
   
   const { data: allLogs } = await supabase
     .from("exercise_logs")
     .select("id, exercise_id, reps, weight, created_at")
-    .in("exercise_id", exerciseIds);
+    .in("exercise_id", exerciseIds)
+    .gte("created_at", tenMinutesAgo.toISOString())
+    .lte("created_at", now.toISOString());
+
+  console.log("🔍 [Complete Page] Logs found:", allLogs?.length);
+  console.log("🔍 [Complete Page] Logs data:", JSON.stringify(allLogs, null, 2));
 
   // Group logs by exercise_id
   interface ExerciseLogData {

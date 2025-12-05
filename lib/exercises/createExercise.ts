@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 export interface CreateExerciseInput {
   name: string;
   category: string;
+  muscle_group: string;
   description?: string;
   imageUrl?: string;
 }
@@ -41,9 +42,9 @@ export async function createExercise(input: CreateExerciseInput) {
   const { data, error } = await supabase
     .from("exercises")
     .insert({
-      user_id: user.id,
       name: input.name,
       category: input.category,
+      muscle_group: input.muscle_group,
       description: input.description,
       image_url: input.imageUrl,
     })
