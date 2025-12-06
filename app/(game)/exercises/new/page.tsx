@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createExerciseWithImage } from "@/lib/exercises/createExercise";
 import Image from "next/image";
 import { Camera, Upload, X } from "lucide-react";
 
-export default function NewExercisePage() {
+function NewExerciseForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -244,5 +244,13 @@ export default function NewExercisePage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function NewExercisePage() {
+  return (
+    <Suspense fallback={<div className="container mx-auto p-6 text-white">Laden...</div>}>
+      <NewExerciseForm />
+    </Suspense>
   );
 }
