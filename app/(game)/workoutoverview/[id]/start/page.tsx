@@ -4,8 +4,16 @@ import WorkoutExecution from "./WorkoutExecution";
 
 export const dynamic = "force-dynamic";
 
-export default async function StartWorkoutPage({ params }: { params: { id: string } }) {
+export default async function StartWorkoutPage({ 
+  params,
+  searchParams 
+}: { 
+  params: { id: string };
+  searchParams: { date?: string };
+}) {
   const { id } = await params;
+  const resolvedSearchParams = await searchParams;
+  const workoutDate = resolvedSearchParams.date || new Date().toISOString().split('T')[0];
   const supabase = await createServerSupabase();
 
   // Fetch workout with exercises
@@ -14,7 +22,6 @@ export default async function StartWorkoutPage({ params }: { params: { id: strin
     .select(`
       id,
       name,
-      date,
       muscle_groups
     `)
     .eq("id", id)
@@ -75,6 +82,7 @@ export default async function StartWorkoutPage({ params }: { params: { id: strin
     <WorkoutExecution
       workoutId={id}
       workoutName={workout.name}
+      workoutDate={workoutDate}
       exercises={exercises}
     />
   );

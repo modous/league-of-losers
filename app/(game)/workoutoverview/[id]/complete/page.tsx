@@ -4,14 +4,16 @@ import WorkoutSummary from "./WorkoutSummary";
 
 export const dynamic = "force-dynamic";
 
-export default async function WorkoutCompletePage({ params }: { params: { id: string } }) {
+export default async function WorkoutCompletePage({ params, searchParams }: { params: { id: string }; searchParams: { date?: string } }) {
   const { id } = await params;
+  const resolvedSearchParams = await searchParams;
+  const workoutDate = resolvedSearchParams.date || new Date().toISOString().split('T')[0];
   const supabase = await createServerSupabase();
 
   // Fetch workout details
   const { data: workout } = await supabase
     .from("workouts")
-    .select("id, name, date, muscle_groups")
+    .select("id, name, muscle_groups")
     .eq("id", id)
     .single();
 
@@ -33,13 +35,36 @@ export default async function WorkoutCompletePage({ params }: { params: { id: st
     `)
     .eq("workout_id", id);
 
-  // Fetch all exercise logs for this workout's exercises
+  // Fetch the most recent workout session for this workout on this date
+  const { data: session } = await supabase
+    .from("workout_sessions")
+    .select("id")
+    .eq("workout_id", id)
+    .eq("workout_date", workoutDate)
+    .not("completed_at", "is", null)
+    .order("completed_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  console.log("🔍 [Complete Page] Workout Date:", workoutDate);
+  console.log("🔍 [Complete Page] Session ID:", session?.id);
+
+  if (!session) {
+    console.log("⚠️ [Complete Page] No completed session found");
+  }
+
+  // Fetch exercise logs for this session
   const exerciseIds = workoutExercises?.map(we => we.exercise_id) || [];
+  console.log("🔍 [Complete Page] Exercise IDs:", exerciseIds);
   
   const { data: allLogs } = await supabase
     .from("exercise_logs")
     .select("id, exercise_id, reps, weight, created_at")
+    .eq("session_id", session?.id || "00000000-0000-0000-0000-000000000000")
     .in("exercise_id", exerciseIds);
+
+  console.log("🔍 [Complete Page] Logs found:", allLogs?.length);
+  console.log("🔍 [Complete Page] Logs data:", JSON.stringify(allLogs, null, 2));
 
   // Group logs by exercise_id
   interface ExerciseLogData {
@@ -99,7 +124,7 @@ export default async function WorkoutCompletePage({ params }: { params: { id: st
     <WorkoutSummary
       workoutId={id}
       workoutName={workout.name}
-      workoutDate={workout.date}
+      workoutDate={workoutDate}
       totalCalories={totalCalories}
       avgIntensity={avgIntensity}
       totalExercises={totalExercises}

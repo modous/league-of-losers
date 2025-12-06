@@ -38,20 +38,20 @@ export async function updateProfile(input: UpdateProfileInput) {
     throw new Error("Not authenticated");
   }
 
-  const updateData: Record<string, number | null> = {};
-  
-  if (input.weight !== undefined) updateData.weight = input.weight || null;
-  if (input.height !== undefined) updateData.height = input.height || null;
-  if (input.age !== undefined) updateData.age = input.age || null;
-
-  const { error } = await supabase
-    .from("players")
-    .update(updateData)
-    .eq("id", user.id); 
+  // Store in user metadata
+  const { error } = await supabase.auth.updateUser({
+    data: {
+      weight: input.weight,
+      height: input.height,
+      age: input.age,
+    }
+  });
 
   if (error) {
-    throw new Error(`Failed to update profile: ${error.message}`);
+    console.error("Error updating profile:", error);
+    throw new Error(error.message);
   }
 
-  revalidatePath('/profile');
+  revalidatePath("/profile");
 }
+

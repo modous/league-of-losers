@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -29,12 +30,19 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="bg-gray-900 border-b border-gray-800 sticky top-0 z-50">
+    <nav className="bg-black border-b border-yellow-400/30 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-24 md:h-28">
           <div className="flex items-center">
-            <Link href="/dashboard" className="text-xl font-bold text-white hover:text-gray-300 transition-colors">
-              League of Losers
+            <Link href="/dashboard" className="flex items-center hover:opacity-80 transition-opacity">
+              <Image 
+                src="/league-of-losers-transparant.png" 
+                alt="League of Losers" 
+                width={400}
+                height={100}
+                className="h-20 md:h-24 w-auto"
+                priority
+              />
             </Link>
           </div>
           
@@ -48,10 +56,10 @@ export default function Navbar() {
                       <Link
                         key={item.href}
                         href={item.href}
-                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
                           isActive
-                            ? 'bg-gray-700 text-white'
-                            : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                            ? 'bg-yellow-400 text-black'
+                            : 'bg-yellow-400/10 text-yellow-400 hover:bg-yellow-400 hover:text-black'
                         }`}
                       >
                         {item.name}
@@ -60,7 +68,7 @@ export default function Navbar() {
                   })}
                   <button
                     onClick={handleLogout}
-                    className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-red-900/50 hover:text-white transition-colors"
+                    className="px-4 py-2 rounded-lg text-sm font-bold bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white transition-all"
                   >
                     Uitloggen
                   </button>
@@ -118,7 +126,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {mobileMenuOpen && !isAuthPage && (
-        <div className="md:hidden fixed inset-0 top-16 bg-gray-900 z-50 overflow-y-auto" id="mobile-menu">
+        <div className="md:hidden fixed inset-0 top-24 bg-black z-50 overflow-y-auto" id="mobile-menu">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             {navItems.map((item) => {
               const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
@@ -127,10 +135,10 @@ export default function Navbar() {
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`block px-3 py-2 rounded-md text-base font-medium ${
+                  className={`block px-4 py-3 rounded-lg text-base font-bold ${
                     isActive
-                      ? 'bg-gray-700 text-white'
-                      : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                      ? 'bg-yellow-400 text-black'
+                      : 'bg-yellow-400/10 text-yellow-400 hover:bg-yellow-400 hover:text-black'
                   }`}
                 >
                   {item.name}
@@ -139,7 +147,7 @@ export default function Navbar() {
             })}
             <button
               onClick={handleLogout}
-              className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-red-900/50 hover:text-white"
+              className="block w-full text-left px-4 py-3 rounded-lg text-base font-bold bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white"
             >
               Uitloggen
             </button>

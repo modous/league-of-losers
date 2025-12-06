@@ -52,6 +52,9 @@ export async function syncUser() {
 
   if (error) {
     console.error("Failed to create player:", error);
+    console.error("Error details:", JSON.stringify(error, null, 2));
+    console.error("User ID:", user.id);
+    console.error("User email:", user.email);
     return null;
   }
 

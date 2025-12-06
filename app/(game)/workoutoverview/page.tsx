@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createServerSupabase } from "@/lib/supabase-server";
+import WorkoutCard from "./WorkoutCard";
 
 export default async function WorkoutOverviewPage() {
   const supabase = await createServerSupabase();
@@ -18,7 +19,7 @@ export default async function WorkoutOverviewPage() {
   // Base query
   let query = supabase
     .from("workouts")
-    .select("id, name, date, muscle_groups, user_id")
+    .select("id, name, muscle_groups, user_id")
     .order("created_at", { ascending: false });
 
   if (!user) {
@@ -37,37 +38,35 @@ export default async function WorkoutOverviewPage() {
   return (
     <div className="min-h-screen bg-black text-white p-6">
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Workout Overzicht</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Workout Overzicht</h1>
+          
+          <Link
+            href="/workouts/new"
+            className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded-lg transition"
+          >
+            + Nieuwe Workout
+          </Link>
+        </div>
 
         {!workouts || workouts.length === 0 ? (
-          <p className="text-slate-400">Geen workouts gevonden.</p>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-8 text-center">
+            <p className="text-slate-400 mb-4">Geen workouts gevonden.</p>
+            <Link
+              href="/workouts/new"
+              className="inline-block bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-6 rounded-lg transition"
+            >
+              Maak je eerste workout
+            </Link>
+          </div>
         ) : (
           <div className="space-y-4">
             {workouts.map((workout) => (
-              <Link
+              <WorkoutCard
                 key={workout.id}
-                href={`/workoutoverview/${workout.id}`}
-                className="block bg-zinc-900 border border-zinc-800 p-4 rounded-xl hover:bg-zinc-800 transition"
-              >
-                <h2 className="text-xl font-semibold">
-                  {workout.name}{" "}
-                  {workout.user_id === null && (
-                    <span className="text-xs text-yellow-400">(Global)</span>
-                  )}
-                </h2>
-
-                <p className="text-slate-400 text-sm mt-1">
-                  {workout.date
-                    ? new Date(workout.date).toLocaleDateString("nl-NL")
-                    : "Geen datum"}
-                </p>
-
-                {workout.muscle_groups?.length > 0 && (
-                  <p className="text-slate-300 text-sm mt-2">
-                    Spiergroepen: {workout.muscle_groups.join(", ")}
-                  </p>
-                )}
-              </Link>
+                workout={workout}
+                currentUserId={user?.id}
+              />
             ))}
           </div>
         )}
