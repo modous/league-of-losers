@@ -2,6 +2,7 @@ import ProgressChart from "@/components/dashboard/ProgressChart";
 import WeekCalendar from "./WeekCalendar";
 import Link from "next/link";
 import { createServerSupabase } from "@/lib/supabase-server";
+import { Calendar, TrendingUp, Flame, Dumbbell, Trophy, Target } from "lucide-react";
 
 export default async function Dashboard() {
   // Fetch workout data for the chart (last 30 days)
@@ -25,6 +26,7 @@ export default async function Dashboard() {
       id,
       workout_date,
       workout_id,
+      completed_at,
       workout:workout_id (
         workout_exercises (
           exercise_id
@@ -87,38 +89,117 @@ export default async function Dashboard() {
     };
   }).filter(w => w.exerciseCount > 0) || [];
 
+  // Calculate stats
+  const totalWorkouts = progressData.length;
+  const thisWeek = sessions?.filter(s => {
+    const sessionDate = new Date(s.workout_date);
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    return sessionDate >= weekAgo;
+  }).length || 0;
+
+  const totalVolume = allLogs?.reduce((sum, log) => sum + (log.weight * log.reps), 0) || 0;
+  const avgWorkoutsPerWeek = totalWorkouts > 0 ? (totalWorkouts / 4.3).toFixed(1) : 0; // 30 days ≈ 4.3 weeks
+
   return (
-    <div className="min-h-screen bg-black p-6">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold text-white mb-2">League of Losers</h1>
-
-        <p className="text-xl text-slate-200 mb-8">
-          Welkom terug, <span className="font-bold">{username}</span>
-        </p>
-        
-        <WeekCalendar /> 
-
-        <div className="mt-8 mb-8">
-          <ProgressChart data={progressData} />
+    <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-black p-4 md:p-6">
+      <div className="max-w-6xl mx-auto">
+        {/* Hero Section */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-12 h-12 bg-yellow-400 rounded-full flex items-center justify-center">
+              <Dumbbell className="text-black" size={24} />
+            </div>
+            <div>
+              <h1 className="text-4xl md:text-5xl font-black text-yellow-400">
+                League of Losers
+              </h1>
+            </div>
+          </div>
+          <p className="text-xl md:text-2xl text-slate-300 ml-15">
+            Welkom terug, <span className="font-bold text-yellow-400">{username}</span> 💪
+          </p>
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">Stats</h2>
-          <div className="grid grid-cols-3 gap-4">
-           
-            <div className="text-center">
-              <p className="text-3xl font-bold text-white">{progressData.length}</p>
-              <p className="text-sm text-slate-400">Workouts gedaan</p>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-xl p-4 backdrop-blur-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <Trophy className="text-yellow-400" size={20} />
+              <p className="text-sm text-slate-400 font-medium">Totaal Workouts</p>
             </div>
+            <p className="text-3xl font-black text-white">{totalWorkouts}</p>
+            <p className="text-xs text-slate-500 mt-1">laatste 30 dagen</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30 rounded-xl p-4 backdrop-blur-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <Flame className="text-blue-400" size={20} />
+              <p className="text-sm text-slate-400 font-medium">Deze Week</p>
+            </div>
+            <p className="text-3xl font-black text-white">{thisWeek}</p>
+            <p className="text-xs text-slate-500 mt-1">workouts gedaan</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-xl p-4 backdrop-blur-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="text-green-400" size={20} />
+              <p className="text-sm text-slate-400 font-medium">Totaal Volume</p>
+            </div>
+            <p className="text-3xl font-black text-white">{(totalVolume / 1000).toFixed(1)}k</p>
+            <p className="text-xs text-slate-500 mt-1">kg getild</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-xl p-4 backdrop-blur-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <Target className="text-purple-400" size={20} />
+              <p className="text-sm text-slate-400 font-medium">Gemiddeld</p>
+            </div>
+            <p className="text-3xl font-black text-white">{avgWorkoutsPerWeek}</p>
+            <p className="text-xs text-slate-500 mt-1">per week</p>
           </div>
         </div>
 
-        <div className="flex gap-4">
-          <Link href="/workouts" className="btn-primary flex-1 text-center">
-            🏋️ Workouts
+        {/* Calendar */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Calendar className="text-yellow-400" size={24} />
+            <h2 className="text-2xl font-bold text-white">Deze Week</h2>
+          </div>
+          <WeekCalendar />
+        </div>
+
+        {/* Progress Chart */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp className="text-yellow-400" size={24} />
+            <h2 className="text-2xl font-bold text-white">Progressie</h2>
+          </div>
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 backdrop-blur-sm">
+            <ProgressChart data={progressData} />
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Link 
+            href="/workouts" 
+            className="group relative overflow-hidden bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl hover:shadow-yellow-400/50"
+          >
+            <div className="flex items-center justify-center gap-3">
+              <Dumbbell size={24} />
+              <span className="text-lg">Start Workout</span>
+            </div>
           </Link>
-          <Link href="/exercises/new" className="btn-primary flex-1 text-center">
-            + Nieuwe Oefening
+          
+          <Link 
+            href="/exercises" 
+            className="group relative overflow-hidden bg-zinc-900 hover:bg-zinc-800 border-2 border-yellow-400 text-yellow-400 font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl hover:shadow-yellow-400/30"
+          >
+            <div className="flex items-center justify-center gap-3">
+              <Target size={24} />
+              <span className="text-lg">Oefeningen</span>
+            </div>
           </Link>
         </div>
       </div>
