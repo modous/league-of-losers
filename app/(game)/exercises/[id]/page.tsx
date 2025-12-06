@@ -2,10 +2,20 @@ import { createServerSupabase } from "@/lib/supabase-server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import ExerciseEditForm from "./ExerciseEditForm";
 
 export default async function ExerciseDetailPage({ params }: { params: { id: string } }) {
   const { id } = await params;
   const supabase = await createServerSupabase();
+
+  // Get current user
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
 
   // Fetch exercise details
   const { data: exercise } = await supabase
@@ -114,6 +124,8 @@ export default async function ExerciseDetailPage({ params }: { params: { id: str
             <p className="text-slate-300 mt-4">{exercise.description}</p>
           )}
         </div>
+
+        <ExerciseEditForm exercise={exercise} currentUserId={user.id} />
 
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-white mb-4">Training History</h2>

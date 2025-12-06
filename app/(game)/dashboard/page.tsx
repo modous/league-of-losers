@@ -101,6 +101,9 @@ export default async function Dashboard() {
   const totalVolume = allLogs?.reduce((sum, log) => sum + (log.weight * log.reps), 0) || 0;
   const avgWorkoutsPerWeek = totalWorkouts > 0 ? (totalWorkouts / 4.3).toFixed(1) : 0; // 30 days ≈ 4.3 weeks
 
+  // Get today's date in YYYY-MM-DD format
+  const today = new Date().toISOString().split('T')[0];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-black p-4 md:p-6">
       <div className="max-w-6xl mx-auto">
@@ -183,7 +186,7 @@ export default async function Dashboard() {
         {/* Action Buttons */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Link 
-            href="/workouts" 
+            href={`/workouts/date/${today}`}
             className="group relative overflow-hidden bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl hover:shadow-yellow-400/50"
           >
             <div className="flex items-center justify-center gap-3">

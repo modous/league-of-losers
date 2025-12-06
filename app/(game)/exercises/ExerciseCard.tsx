@@ -102,7 +102,7 @@ export function ExerciseCard({ exercise, currentUserId }: ExerciseCardProps) {
 
   return (
     <div
-      className="relative"
+      className="relative h-full"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onTouchStart={handleTouchStart}
@@ -110,10 +110,10 @@ export function ExerciseCard({ exercise, currentUserId }: ExerciseCardProps) {
     >
       <Link
         href={`/exercises/${exercise.id}`}
-        className="block bg-neutral-900 border border-neutral-700 rounded-lg overflow-hidden hover:bg-neutral-800 transition"
+        className="flex flex-col h-full bg-neutral-900 border border-neutral-700 rounded-lg overflow-hidden hover:bg-neutral-800 transition"
       >
-        {exercise.image_url && (
-          <div className="relative w-full aspect-video">
+        {exercise.image_url ? (
+          <div className="relative w-full h-48 flex-shrink-0">
             <Image
               src={exercise.image_url}
               alt={exercise.name}
@@ -121,17 +121,19 @@ export function ExerciseCard({ exercise, currentUserId }: ExerciseCardProps) {
               className="object-cover"
             />
           </div>
+        ) : (
+          <div className="w-full h-48 flex-shrink-0 bg-neutral-800" />
         )}
 
-        <div className="p-4">
-          <h2 className="text-xl font-semibold">{exercise.name}</h2>
+        <div className="p-4 flex flex-col flex-grow">
+          <h2 className="text-xl font-semibold line-clamp-1">{exercise.name}</h2>
 
           {exercise.category && (
-            <p className="text-sm text-neutral-400">{exercise.category}</p>
+            <p className="text-sm text-neutral-400 line-clamp-1">{exercise.category}</p>
           )}
 
           {exercise.description && (
-            <p className="text-sm text-neutral-400 mt-1 line-clamp-2">
+            <p className="text-sm text-neutral-400 mt-2 line-clamp-2">
               {exercise.description}
             </p>
           )}
