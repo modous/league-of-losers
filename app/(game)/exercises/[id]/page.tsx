@@ -21,44 +21,28 @@ export default async function ExerciseDetailPage({ params }: { params: { id: str
   // Fetch all logs for this exercise
   const { data: logs } = await supabase
     .from("exercise_logs")
-    .select("id, reps, weight, notes, created_at")
+    .select(`
+      id, 
+      reps, 
+      weight, 
+      notes, 
+      created_at,
+      session_id,
+      session:session_id (
+        id,
+        workout_date,
+        workout:workout_id (
+          id,
+          name
+        )
+      )
+    `)
     .eq("exercise_id", id)
     .order("created_at", { ascending: false });
 
-  // Fetch workouts that contain this exercise
-  const { data: workoutExercises } = await supabase
-    .from("workout_exercises")
-    .select(`
-      workout_id,
-      workouts!inner (
-        id,
-        name,
-        date
-      )
-    `)
-    .eq("exercise_id", id);
-
-  // Create a map of workout dates to workout info
-  interface WorkoutInfo {
-    id: string;
-    name: string;
-    date: string;
-  }
-  const workoutsByDate = new Map<string, WorkoutInfo>();
-  
-  workoutExercises?.forEach((we) => {
-    const workout = (we.workouts as any);
-    if (workout) {
-      workoutsByDate.set(workout.date, {
-        id: workout.id,
-        name: workout.name,
-        date: workout.date
-      });
-    }
-  });
-
-  // Group logs by date (match with workouts)
+  // Group logs by session
   interface WorkoutGroup {
+    sessionId: string;
     workoutId: string;
     workoutName: string;
     workoutDate: string;
@@ -71,23 +55,25 @@ export default async function ExerciseDetailPage({ params }: { params: { id: str
     }>;
   }
 
-  const workoutGroups = new Map<string, WorkoutGroup>();
+  const sessionGroups = new Map<string, WorkoutGroup>();
   
   logs?.forEach((log) => {
-    const logDate = log.created_at.split('T')[0]; // Extract date (YYYY-MM-DD)
-    const workout = workoutsByDate.get(logDate);
+    const session = Array.isArray(log.session) ? log.session[0] : log.session;
+    const workout = session?.workout;
+    const workoutData = Array.isArray(workout) ? workout[0] : workout;
     
-    if (workout) {
-      if (!workoutGroups.has(workout.id)) {
-        workoutGroups.set(workout.id, {
-          workoutId: workout.id,
-          workoutName: workout.name,
-          workoutDate: workout.date,
+    if (session && workoutData) {
+      if (!sessionGroups.has(log.session_id)) {
+        sessionGroups.set(log.session_id, {
+          sessionId: log.session_id,
+          workoutId: workoutData.id,
+          workoutName: workoutData.name,
+          workoutDate: session.workout_date,
           logs: []
         });
       }
 
-      workoutGroups.get(workout.id)?.logs.push({
+      sessionGroups.get(log.session_id)?.logs.push({
         id: log.id,
         reps: log.reps,
         weight: log.weight,
@@ -97,7 +83,7 @@ export default async function ExerciseDetailPage({ params }: { params: { id: str
     }
   });
 
-  const sortedWorkouts = Array.from(workoutGroups.values()).sort(
+  const sortedWorkouts = Array.from(sessionGroups.values()).sort(
     (a, b) => new Date(b.workoutDate).getTime() - new Date(a.workoutDate).getTime()
   );
 
@@ -155,7 +141,7 @@ export default async function ExerciseDetailPage({ params }: { params: { id: str
 
                 return (
                   <div
-                    key={workout.workoutId}
+                    key={workout.sessionId}
                     className="bg-zinc-900 border border-zinc-800 rounded-lg p-6"
                   >
                     <div className="flex justify-between items-start mb-4">

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { createBrowserClient } from "@supabase/ssr";
 
 interface Exercise {
   id: string;
@@ -17,12 +18,14 @@ interface ExerciseSet {
 interface WorkoutExecutionProps {
   workoutId: string;
   workoutName: string;
+  workoutDate: string;
   exercises: Exercise[];
 }
 
 export default function WorkoutExecution({
   workoutId,
   workoutName,
+  workoutDate,
   exercises,
 }: WorkoutExecutionProps) {
   const router = useRouter();
@@ -30,10 +33,59 @@ export default function WorkoutExecution({
   const [sets, setSets] = useState<ExerciseSet[]>([{ reps: 0, weight: 0 }]);
   const [saving, setSaving] = useState(false);
   const [completedExercises, setCompletedExercises] = useState<Set<number>>(new Set());
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [loadingSession, setLoadingSession] = useState(true);
 
   const currentExercise = exercises[currentExerciseIndex];
   const isLastExercise = currentExerciseIndex === exercises.length - 1;
   const progress = ((currentExerciseIndex + 1) / exercises.length) * 100;
+
+  // Create workout session on mount
+  useEffect(() => {
+    async function createSession() {
+      try {
+        const supabase = createBrowserClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          console.error('❌ No user found');
+          alert('Je moet ingelogd zijn om een workout te starten.');
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('workout_sessions')
+          .insert({
+            user_id: user.id,
+            workout_id: workoutId,
+            workout_date: workoutDate,
+            started_at: new Date().toISOString(),
+          })
+          .select('id')
+          .single();
+
+        if (error) {
+          console.error('❌ Error creating workout session:', error);
+          alert('Kon geen workout sessie starten. Probeer opnieuw.');
+          return;
+        }
+
+        console.log('✅ Created workout session:', data.id);
+        setSessionId(data.id);
+      } catch (error) {
+        console.error('❌ Error in createSession:', error);
+      } finally {
+        setLoadingSession(false);
+      }
+    }
+
+    createSession();
+  }, [workoutId, workoutDate]);
 
   const addSet = () => {
     setSets([...sets, { reps: 0, weight: 0 }]);
@@ -52,22 +104,33 @@ export default function WorkoutExecution({
   };
 
   const handleNext = async () => {
+    if (!sessionId) {
+      alert('Geen actieve sessie. Herlaad de pagina.');
+      return;
+    }
+
     setSaving(true);
 
     try {
       // Save logs for current exercise
       for (const set of sets) {
         if (set.reps > 0 || set.weight > 0) {
-          await fetch("/api/exercise-logs", {
+          const response = await fetch("/api/exercise-logs", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              workoutId,
+              sessionId,
               exerciseId: currentExercise.id,
               reps: set.reps,
               weight: set.weight,
             }),
           });
+
+          if (!response.ok) {
+            const error = await response.json();
+            console.error('❌ Failed to save exercise log:', error);
+            throw new Error(error.error || 'Failed to save');
+          }
         }
       }
 
@@ -75,8 +138,19 @@ export default function WorkoutExecution({
       setCompletedExercises(new Set([...completedExercises, currentExerciseIndex]));
 
       if (isLastExercise) {
+        // Mark session as completed
+        const supabase = createBrowserClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+
+        await supabase
+          .from('workout_sessions')
+          .update({ completed_at: new Date().toISOString() })
+          .eq('id', sessionId);
+
         // Workout complete! Redirect to summary page
-        router.push(`/workoutoverview/${workoutId}/complete`);
+        router.push(`/workoutoverview/${workoutId}/complete?date=${workoutDate}`);
       } else {
         // Move to next exercise
         setCurrentExerciseIndex(currentExerciseIndex + 1);
@@ -105,6 +179,34 @@ export default function WorkoutExecution({
       setSets([{ reps: 0, weight: 0 }]);
     }
   };
+
+  if (loadingSession) {
+    return (
+      <div className="min-h-screen bg-black text-white p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-xl mb-2">⏳</div>
+          <p>Workout sessie wordt gestart...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!sessionId) {
+    return (
+      <div className="min-h-screen bg-black text-white p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-xl mb-2">❌</div>
+          <p className="mb-4">Kon geen workout sessie starten</p>
+          <button
+            onClick={() => router.back()}
+            className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded-lg"
+          >
+            Terug
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white p-6">

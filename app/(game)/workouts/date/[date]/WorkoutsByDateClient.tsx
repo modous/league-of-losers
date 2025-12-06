@@ -2,25 +2,49 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getWorkoutsByDate, getAllWorkouts, Workout } from "@/lib/workouts";
+import { Workout, getAllWorkouts } from "@/lib/workouts";
+import { createBrowserClient } from "@supabase/ssr";
 
 export default function WorkoutsByDateClient({ date }: { date: string }) {
   console.log("🔥 Client received date:", date);
 
   const [loading, setLoading] = useState(true);
-  const [workoutsForDate, setWorkoutsForDate] = useState<Workout[]>([]);
+  const [completedWorkoutIds, setCompletedWorkoutIds] = useState<Set<string>>(new Set());
   const [allWorkouts, setAllWorkouts] = useState<Workout[]>([]);
 
   useEffect(() => {
     async function load() {
+      console.log('🔍 [WorkoutsByDateClient] Starting load for date:', date);
       setLoading(true);
-      const [dateWorkouts, all] = await Promise.all([
-        getWorkoutsByDate(date),
-        getAllWorkouts()
-      ]);
-      setWorkoutsForDate(dateWorkouts);
-      setAllWorkouts(all);
+      
+      // Get all workout templates
+      console.log('📥 [WorkoutsByDateClient] Fetching all workouts...');
+      const workouts = await getAllWorkouts();
+      console.log('✅ [WorkoutsByDateClient] Received workouts:', workouts);
+      console.log('📊 [WorkoutsByDateClient] Workout count:', workouts.length);
+      setAllWorkouts(workouts);
+      
+      // Get workout sessions completed on this date
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      
+      console.log('🔎 [WorkoutsByDateClient] Checking workout_sessions for date:', date);
+      const { data: sessions, error: sessionError } = await supabase
+        .from('workout_sessions')
+        .select('workout_id')
+        .eq('workout_date', date)
+        .not('completed_at', 'is', null);
+      
+      console.log('📋 [WorkoutsByDateClient] Sessions result:', { sessions, error: sessionError });
+      
+      const completedIds = new Set(sessions?.map(s => s.workout_id) || []);
+      console.log('✔️ [WorkoutsByDateClient] Completed workout IDs:', Array.from(completedIds));
+      setCompletedWorkoutIds(completedIds);
+      
       setLoading(false);
+      console.log('🏁 [WorkoutsByDateClient] Load complete');
     }
     load();
   }, [date]);
@@ -35,21 +59,24 @@ export default function WorkoutsByDateClient({ date }: { date: string }) {
     month: "long",
   });
 
-  // Separate workouts: those for this date vs available workouts
-  const workoutsForDateIds = new Set(workoutsForDate.map(w => w.id));
-  const availableWorkouts = allWorkouts.filter(w => !workoutsForDateIds.has(w.id));
+  // Separate workouts: completed today vs available
+  const completedWorkouts = allWorkouts.filter(w => completedWorkoutIds.has(w.id));
+  const availableWorkouts = allWorkouts.filter(w => !completedWorkoutIds.has(w.id));
+  
+  console.log('🎯 [WorkoutsByDateClient] Completed workouts:', completedWorkouts.length);
+  console.log('🎯 [WorkoutsByDateClient] Available workouts:', availableWorkouts.length);
 
   return (
     <div className="min-h-screen bg-black p-6 text-white">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-6 capitalize">{formatted}</h1>
 
-        {/* WORKOUTS FOR THIS DATE */}
-        {workoutsForDate.length > 0 && (
+        {/* COMPLETED WORKOUTS */}
+        {completedWorkouts.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4 text-green-400">Workouts voor vandaag</h2>
+            <h2 className="text-xl font-semibold mb-4 text-green-400">Voltooid vandaag</h2>
             <div className="space-y-4">
-              {workoutsForDate.map((w) => (
+              {completedWorkouts.map((w) => (
                 <div
                   key={w.id}
                   className="border-2 border-green-500 rounded-lg bg-zinc-900 p-4 hover:border-green-400 transition"
@@ -74,7 +101,7 @@ export default function WorkoutsByDateClient({ date }: { date: string }) {
                   </Link>
 
                   <Link
-                    href={`/workoutoverview/${w.id}/start`}
+                    href={`/workoutoverview/${w.id}/start?date=${date}`}
                     className="mt-3 block text-center bg-green-500 hover:bg-green-600 text-black font-bold py-2 rounded-lg"
                   >
                     Start Workout
@@ -110,7 +137,7 @@ export default function WorkoutsByDateClient({ date }: { date: string }) {
                   </Link>
 
                   <Link
-                    href={`/workoutoverview/${w.id}/start`}
+                    href={`/workoutoverview/${w.id}/start?date=${date}`}
                     className="mt-3 block text-center bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 rounded-lg"
                   >
                     Start Workout
@@ -121,7 +148,7 @@ export default function WorkoutsByDateClient({ date }: { date: string }) {
           </div>
         )}
 
-        {workoutsForDate.length === 0 && availableWorkouts.length === 0 && (
+        {completedWorkouts.length === 0 && availableWorkouts.length === 0 && (
           <div className="text-slate-500 text-center py-8">
             Nog geen workouts beschikbaar. Maak er een aan!
           </div>

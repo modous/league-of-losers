@@ -6,9 +6,12 @@ export async function POST(request: Request) {
     const supabase = await createServerSupabase();
     const body = await request.json();
     
-    const { workoutId, exerciseId, reps, weight } = body;
+    console.log('📝 [exercise-logs] Received body:', body);
+    
+    const { sessionId, exerciseId, reps, weight } = body;
 
-    if (!workoutId || !exerciseId) {
+    if (!sessionId || !exerciseId) {
+      console.log('❌ [exercise-logs] Missing required fields');
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -16,7 +19,10 @@ export async function POST(request: Request) {
     }
 
     // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    console.log('👤 [exercise-logs] User:', user?.id);
+    console.log('👤 [exercise-logs] User error:', userError);
     
     if (!user) {
       return NextResponse.json(
@@ -25,13 +31,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // Insert exercise log directly with exercise_id
+    // Insert exercise log with session_id
+    console.log('💾 [exercise-logs] Inserting:', {
+      user_id: user.id,
+      session_id: sessionId,
+      exercise_id: exerciseId,
+      reps: reps || 0,
+      weight: weight || 0,
+    });
+    
     const { data, error } = await supabase
       .from("exercise_logs")
       .insert({
         user_id: user.id,
+        session_id: sessionId,
         exercise_id: exerciseId,
-        workout_date: new Date().toISOString().split('T')[0], // Add today's date
         reps: reps || 0,
         weight: weight || 0,
       })
@@ -39,13 +53,15 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      console.error("Error inserting exercise log:", error);
+      console.error("❌ [exercise-logs] Error inserting exercise log:", error);
+      console.error("❌ [exercise-logs] Error details:", JSON.stringify(error, null, 2));
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    console.log('✅ [exercise-logs] Successfully inserted:', data);
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Error in POST /api/exercise-logs:", error);
+    console.error("❌ [exercise-logs] Error in POST /api/exercise-logs:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

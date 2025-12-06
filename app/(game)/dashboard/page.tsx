@@ -1,73 +1,87 @@
-import { syncUser } from "@/lib/game/syncUser";
 import ProgressChart from "@/components/dashboard/ProgressChart";
 import WeekCalendar from "./WeekCalendar";
 import Link from "next/link";
 import { createServerSupabase } from "@/lib/supabase-server";
 
 export default async function Dashboard() {
-  const player = await syncUser() as unknown as { username: string; streak: number };
-  
   // Fetch workout data for the chart (last 30 days)
   const supabase = await createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   
+  if (!user) {
+    return <div className="text-white p-6">Not authenticated</div>;
+  }
+  
+  // Get username from email or user metadata
+  const username = user.user_metadata?.username || user.email?.split('@')[0] || 'User';
+  
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   
-  const { data: workouts } = await supabase
-    .from('workouts')
+  // Query workout sessions instead of workouts (which don't have dates)
+  const { data: sessions } = await supabase
+    .from('workout_sessions')
     .select(`
-      date,
-      workout_exercises (
-        exercise_id
+      id,
+      workout_date,
+      workout_id,
+      workout:workout_id (
+        workout_exercises (
+          exercise_id
+        )
       )
     `)
     .eq('user_id', user?.id)
-    .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
-    .order('date', { ascending: true });
+    .not('completed_at', 'is', null)
+    .gte('workout_date', thirtyDaysAgo.toISOString().split('T')[0])
+    .order('workout_date', { ascending: true });
 
-  // Get all unique exercise IDs from all workouts
+  // Get all unique exercise IDs from all sessions
   const exerciseIds = Array.from(new Set(
-    workouts?.flatMap(w => 
-      w.workout_exercises?.map(we => we.exercise_id) || []
-    ) || []
+    sessions?.flatMap(s => {
+      const workout = Array.isArray(s.workout) ? s.workout[0] : s.workout;
+      return workout?.workout_exercises?.map(we => we.exercise_id) || [];
+    }) || []
   ));
 
-  // Fetch all exercise logs for these exercises
+  // Fetch all exercise logs for these sessions
+  const sessionIds = sessions?.map(s => s.id) || [];
+  
   const { data: allLogs } = await supabase
     .from('exercise_logs')
-    .select('exercise_id, weight, reps, created_at')
+    .select('session_id, exercise_id, weight, reps, created_at')
     .eq('user_id', user?.id)
-    .in('exercise_id', exerciseIds)
-    .gte('created_at', thirtyDaysAgo.toISOString());
+    .in('session_id', sessionIds);
 
-  // Group logs by exercise_id
+  // Group logs by session_id
   interface ExerciseLogData {
+    session_id: string;
     exercise_id: string;
     weight: number;
     reps: number;
     created_at: string;
   }
   
-  const logsByExercise = new Map<string, ExerciseLogData[]>();
+  const logsBySession = new Map<string, ExerciseLogData[]>();
   allLogs?.forEach(log => {
-    if (!logsByExercise.has(log.exercise_id)) {
-      logsByExercise.set(log.exercise_id, []);
+    if (!logsBySession.has(log.session_id)) {
+      logsBySession.set(log.session_id, []);
     }
-    logsByExercise.get(log.exercise_id)?.push(log);
+    logsBySession.get(log.session_id)?.push(log);
   });
 
   // Transform data for the chart
-  const progressData = workouts?.map(workout => {
-    const exerciseIds = workout.workout_exercises?.map(we => we.exercise_id) || [];
-    const workoutLogs = exerciseIds.flatMap(id => logsByExercise.get(id) || []);
+  const progressData = sessions?.map(session => {
+    const workout = Array.isArray(session.workout) ? session.workout[0] : session.workout;
+    const exerciseIds = workout?.workout_exercises?.map(we => we.exercise_id) || [];
+    const sessionLogs = logsBySession.get(session.id) || [];
     
-    const exerciseCount = workoutLogs.length > 0 ? exerciseIds.length : 0;
-    const weights = workoutLogs.map(log => log.weight || 0);
+    const exerciseCount = sessionLogs.length > 0 ? exerciseIds.length : 0;
+    const weights = sessionLogs.map(log => log.weight || 0);
     const maxWeight = weights.length > 0 ? Math.max(...weights) : 0;
     
     return {
-      date: workout.date,
+      date: session.workout_date,
       exerciseCount,
       maxWeight
     };
@@ -79,7 +93,7 @@ export default async function Dashboard() {
         <h1 className="text-4xl font-bold text-white mb-2">League of Losers</h1>
 
         <p className="text-xl text-slate-200 mb-8">
-          Welkom terug, <span className="font-bold">{player.username}</span>
+          Welkom terug, <span className="font-bold">{username}</span>
         </p>
         
         <WeekCalendar /> 
@@ -93,8 +107,8 @@ export default async function Dashboard() {
           <div className="grid grid-cols-3 gap-4">
            
             <div className="text-center">
-              <p className="text-3xl font-bold text-white">{player.streak}</p>
-              <p className="text-sm text-slate-400">Streak</p>
+              <p className="text-3xl font-bold text-white">{progressData.length}</p>
+              <p className="text-sm text-slate-400">Workouts gedaan</p>
             </div>
           </div>
         </div>

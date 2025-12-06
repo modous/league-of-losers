@@ -1,13 +1,26 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createExercise } from "@/lib/exercises/createExercise";
 
 export default function NewExercisePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Get params from URL
+  const preselectedMuscleGroup = searchParams.get("muscleGroup");
+  const returnTo = searchParams.get("returnTo");
+
+  const [muscleGroup, setMuscleGroup] = useState(preselectedMuscleGroup || "");
+
+  useEffect(() => {
+    if (preselectedMuscleGroup) {
+      setMuscleGroup(preselectedMuscleGroup);
+    }
+  }, [preselectedMuscleGroup]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -34,10 +47,23 @@ export default function NewExercisePage() {
         description: description || undefined,
       });
 
-      router.push(`/exercises/${exercise.id}`);
+      // If there's a return URL, go back there; otherwise go to exercise detail
+      if (returnTo) {
+        router.push(returnTo);
+      } else {
+        router.push(`/exercises/${exercise.id}`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Er ging iets mis");
       setLoading(false);
+    }
+  }
+
+  function handleCancel() {
+    if (returnTo) {
+      router.push(returnTo);
+    } else {
+      router.push("/exercises");
     }
   }
 
@@ -92,6 +118,8 @@ export default function NewExercisePage() {
             id="muscle_group"
             name="muscle_group"
             required
+            value={muscleGroup}
+            onChange={(e) => setMuscleGroup(e.target.value)}
             className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
           >
             <option value="">Selecteer spiergroep</option>
@@ -99,7 +127,8 @@ export default function NewExercisePage() {
             <option value="Rug">Rug</option>
             <option value="Benen">Benen</option>
             <option value="Schouders">Schouders</option>
-            <option value="Armen">Armen</option>
+            <option value="Biceps">Biceps</option>
+            <option value="Triceps">Triceps</option>
             <option value="Core">Core</option>
             <option value="Full Body">Full Body</option>
           </select>
@@ -128,7 +157,7 @@ export default function NewExercisePage() {
           </button>
           <button
             type="button"
-            onClick={() => router.push("/exercises")}
+            onClick={handleCancel}
             className="rounded-lg border border-gray-300 px-6 py-2 hover:bg-gray-100"
           >
             Annuleren
