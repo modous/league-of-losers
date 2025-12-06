@@ -117,17 +117,17 @@ export default function WeekCalendar() {
     <div className="w-full">
 
       {/* HEADER */}
-      <div className="flex items-center justify-between mb-4 text-white">
+      <div className="flex items-center justify-between mb-6 text-white">
         <button
           onClick={previousWeek}
-          className="bg-yellow-400 hover:bg-yellow-500 text-black rounded-md font-semibold px-3 py-2 sm:px-3 sm:py-2"
+          className="bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black rounded-lg font-bold px-4 py-2 sm:px-5 sm:py-2.5 shadow-lg hover:shadow-yellow-400/50 transition-all transform hover:scale-105"
         >
           <span className="sm:hidden">←</span>
           <span className="hidden sm:inline">← Vorige</span>
         </button>
 
-        <div className="flex items-center gap-2">
-          <div className="text-lg font-bold capitalize">
+        <div className="flex items-center gap-3">
+          <div className="text-xl font-bold capitalize bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
             {currentWeek[0].toLocaleDateString("nl-NL", {
               month: "long",
               year: "numeric",
@@ -137,7 +137,7 @@ export default function WeekCalendar() {
           {!isCurrentWeek() && (
             <button
               onClick={goToToday}
-              className="text-black bg-yellow-400 hover:bg-yellow-500 px-2 py-1 rounded text-xs sm:text-sm font-semibold"
+              className="text-black bg-yellow-400 hover:bg-yellow-500 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold shadow-md hover:shadow-yellow-400/50 transition-all transform hover:scale-105"
             >
               Vandaag
             </button>
@@ -146,7 +146,7 @@ export default function WeekCalendar() {
 
         <button
           onClick={nextWeek}
-          className="bg-yellow-400 hover:bg-yellow-500 text-black rounded-md font-semibold px-3 py-2 sm:px-3 sm:py-2"
+          className="bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black rounded-lg font-bold px-4 py-2 sm:px-5 sm:py-2.5 shadow-lg hover:shadow-yellow-400/50 transition-all transform hover:scale-105"
         >
           <span className="sm:hidden">→</span>
           <span className="hidden sm:inline">Volgende →</span>
@@ -155,60 +155,66 @@ export default function WeekCalendar() {
 
       {/* CALENDAR */}
       {loading ? (
-        <div className="text-slate-400">Laden...</div>
+        <div className="text-slate-400 text-center py-8">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400"></div>
+        </div>
       ) : (
         <div
           ref={scrollRef}
           className="
             flex sm:grid sm:grid-cols-7
-            gap-4 overflow-x-auto pb-3
+            gap-3 overflow-x-auto py-4 pb-6
             scrollbar-hide snap-x snap-mandatory
           "
         >
           {currentWeek.map((date, i) => {
             const dateStr = format(date);
             const workout = weekData.find((w) => w.date === dateStr);
+            const today = isToday(date);
 
             return (
               <Link
                 key={dateStr}
-               href={`/workouts/date/${dateStr}`}
+                href={`/workouts/date/${dateStr}`}
                 className={`
-                  snap-center flex-shrink-0 w-[100px] sm:w-auto text-center p-4 rounded-lg border-2 transition-all no-underline hover:no-underline
+                  snap-center flex-shrink-0 w-[110px] sm:w-auto text-center p-5 rounded-xl border-2 transition-all duration-300 no-underline hover:no-underline transform hover:scale-105 hover:shadow-xl backdrop-blur-sm
                   ${
-                    isToday(date)
-                      ? "border-yellow-300 bg-zinc-900"
+                    today
+                      ? "border-yellow-400 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 shadow-lg shadow-yellow-400/30"
                       : workout?.trained
-                      ? "border-green-500 bg-zinc-900"
-                      : "border-zinc-700 bg-zinc-900 hover:border-yellow-300"
+                      ? "border-green-500/50 bg-gradient-to-br from-green-500/10 to-emerald-500/10 hover:border-green-400 hover:shadow-green-400/30"
+                      : "border-zinc-700/50 bg-zinc-900/50 hover:border-yellow-400/50 hover:bg-zinc-800/50"
                   }
                 `}
               >
-                <div className="text-slate-400 text-xs">{weekDays[i]}</div>
+                <div className={`text-xs font-semibold uppercase tracking-wider mb-1 ${today ? 'text-yellow-400' : 'text-slate-400'}`}>
+                  {weekDays[i]}
+                </div>
 
-                <div className="text-xl font-bold text-white">
+                <div className={`text-2xl font-black mb-3 ${today ? 'text-yellow-400' : 'text-white'}`}>
                   {date.getDate()}
                 </div>
 
                 {workout?.trained ? (
-                  <div className="mt-2 space-y-1">
-                    <div className="text-green-400 text-xs">
-                      ✓ {workout.exercises_count} oefeningen
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-center gap-1.5 text-green-400 text-xs font-semibold bg-green-500/10 rounded-full py-1 px-2">
+                      <span>✓</span>
+                      <span>{workout.exercises_count}</span>
                     </div>
                     {workout.calories !== undefined && workout.calories > 0 && (
-                      <div className="text-yellow-400 text-xs">
-                        🔥 {workout.calories} kcal
+                      <div className="text-orange-400 text-xs font-medium">
+                        🔥 {workout.calories}
                       </div>
                     )}
                     {workout.intensity !== undefined && workout.intensity > 0 && (
-                      <div className="text-blue-400 text-xs">
-                        💪 {workout.intensity}% intensiteit
+                      <div className="text-blue-400 text-xs font-medium">
+                        💪 {workout.intensity}%
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="text-slate-600 text-xs mt-2">
-                    Geen training
+                  <div className="text-slate-600 text-xs font-medium">
+                    Rust dag
                   </div>
                 )}
               </Link>

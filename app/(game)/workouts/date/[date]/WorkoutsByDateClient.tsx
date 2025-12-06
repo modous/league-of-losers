@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Workout, getAllWorkouts } from "@/lib/workouts";
 import { createBrowserClient } from "@supabase/ssr";
+import { ArrowLeft } from "lucide-react";
 
 export default function WorkoutsByDateClient({ date }: { date: string }) {
   console.log("🔥 Client received date:", date);
@@ -69,6 +70,14 @@ export default function WorkoutsByDateClient({ date }: { date: string }) {
   return (
     <div className="min-h-screen bg-black p-6 text-white">
       <div className="max-w-4xl mx-auto">
+        <Link 
+          href="/dashboard" 
+          className="inline-flex items-center gap-2 text-yellow-400 hover:text-yellow-300 mb-6 transition-colors"
+        >
+          <ArrowLeft size={20} />
+          <span>Terug naar dashboard</span>
+        </Link>
+        
         <h1 className="text-2xl font-bold mb-6 capitalize">{formatted}</h1>
 
         {/* COMPLETED WORKOUTS */}

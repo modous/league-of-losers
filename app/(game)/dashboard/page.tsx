@@ -109,17 +109,7 @@ export default async function Dashboard() {
       <div className="max-w-6xl mx-auto">
         {/* Hero Section */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 bg-yellow-400 rounded-full flex items-center justify-center">
-              <Dumbbell className="text-black" size={24} />
-            </div>
-            <div>
-              <h1 className="text-4xl md:text-5xl font-black text-yellow-400">
-                League of Losers
-              </h1>
-            </div>
-          </div>
-          <p className="text-xl md:text-2xl text-slate-300 ml-15">
+          <p className="text-xl md:text-2xl text-slate-300">
             Welkom terug, <span className="font-bold text-yellow-400">{username}</span> 💪
           </p>
         </div>
@@ -178,9 +168,7 @@ export default async function Dashboard() {
             <TrendingUp className="text-yellow-400" size={24} />
             <h2 className="text-2xl font-bold text-white">Progressie</h2>
           </div>
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 backdrop-blur-sm">
-            <ProgressChart data={progressData} />
-          </div>
+          <ProgressChart data={progressData} />
         </div>
 
         {/* Action Buttons */}

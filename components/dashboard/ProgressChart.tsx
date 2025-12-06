@@ -18,7 +18,7 @@ interface ProgressChartProps {
 export default function ProgressChart({ data }: ProgressChartProps) {
   if (!data || data.length === 0) {
     return (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 md:p-6">
         <h2 className="text-2xl font-bold text-white mb-4">Progress deze maand</h2>
         <div className="text-center text-slate-400 py-8">
           Nog geen trainingen deze maand
@@ -163,7 +163,7 @@ export default function ProgressChart({ data }: ProgressChartProps) {
   };
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-2 md:p-6">
       <Chart
         options={options}
         series={series}
