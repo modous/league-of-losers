@@ -70,11 +70,14 @@ export async function POST(request: Request) {
   const targetDate = date || new Date().toISOString().split("T")[0];
 
   // Get all completed workouts for the target date
+  // Only include sessions that have been completed AND have metrics calculated
   const { data: sessions, error: sessionsError } = await supabase
     .from("workout_sessions")
     .select("user_id, intensity, calories, exercises_count, workout_date, completed_at")
     .eq("workout_date", targetDate)
-    .not("completed_at", "is", null);
+    .not("completed_at", "is", null)
+    .not("intensity", "is", null)
+    .not("calories", "is", null);
 
   if (sessionsError) {
     return NextResponse.json({ error: sessionsError.message }, { status: 500 });

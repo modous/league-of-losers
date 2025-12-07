@@ -61,25 +61,44 @@ export default function WorkoutExecution({
           return;
         }
 
-        const { data, error } = await supabase
+        // Check if there's already an active (non-completed) session for this workout today
+        const { data: existingSession } = await supabase
           .from('workout_sessions')
-          .insert({
-            user_id: user.id,
-            workout_id: workoutId,
-            workout_date: workoutDate,
-            started_at: new Date().toISOString(),
-          })
           .select('id')
-          .single();
+          .eq('user_id', user.id)
+          .eq('workout_id', workoutId)
+          .eq('workout_date', workoutDate)
+          .is('completed_at', null)
+          .order('started_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-        if (error) {
-          console.error('❌ Error creating workout session:', error);
-          alert('Kon geen workout sessie starten. Probeer opnieuw.');
-          return;
+        if (existingSession) {
+          // Reuse existing active session
+          console.log('✅ Reusing existing workout session:', existingSession.id);
+          setSessionId(existingSession.id);
+        } else {
+          // Create new session
+          const { data, error } = await supabase
+            .from('workout_sessions')
+            .insert({
+              user_id: user.id,
+              workout_id: workoutId,
+              workout_date: workoutDate,
+              started_at: new Date().toISOString(),
+            })
+            .select('id')
+            .single();
+
+          if (error) {
+            console.error('❌ Error creating workout session:', error);
+            alert('Kon geen workout sessie starten. Probeer opnieuw.');
+            return;
+          }
+
+          console.log('✅ Created workout session:', data.id);
+          setSessionId(data.id);
         }
-
-        console.log('✅ Created workout session:', data.id);
-        setSessionId(data.id);
 
         // Get user bodyweight from profile
         const { data: profileData } = await supabase
