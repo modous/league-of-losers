@@ -16,17 +16,10 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const date = searchParams.get("date") || new Date().toISOString().split("T")[0];
 
-  // Get leaderboard for specific date with profiles
+  // Get leaderboard for specific date
   const { data: leaderboard, error } = await supabase
     .from("daily_leaderboard")
-    .select(`
-      *,
-      profiles!daily_leaderboard_user_id_fkey (
-        username,
-        full_name,
-        avatar_url
-      )
-    `)
+    .select("*")
     .eq("date", date)
     .order("rank", { ascending: true });
 
@@ -34,7 +27,31 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json(leaderboard || []);
+  if (!leaderboard || leaderboard.length === 0) {
+    return NextResponse.json([]);
+  }
+
+  // Get profiles for all users in the leaderboard
+  const userIds = leaderboard.map(entry => entry.user_id);
+  const { data: profilesData } = await supabase
+    .from("profiles")
+    .select("id, username, full_name, avatar_url")
+    .in("id", userIds);
+
+  // Merge leaderboard data with profiles
+  const leaderboardWithProfiles = leaderboard.map(entry => {
+    const profile = profilesData?.find(p => p.id === entry.user_id);
+    return {
+      ...entry,
+      profiles: {
+        username: profile?.username || 'Unknown',
+        full_name: profile?.full_name || null,
+        avatar_url: profile?.avatar_url || null,
+      }
+    };
+  });
+
+  return NextResponse.json(leaderboardWithProfiles);
 }
 
 // POST - Calculate and update daily leaderboard

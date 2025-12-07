@@ -15,9 +15,8 @@ interface MedalData {
     rank: number;
     medal: string;
     score: number;
-    profiles: {
-      username: string;
-    };
+    username: string;
+    full_name?: string | null;
   }>;
   date: string;
 }
@@ -147,7 +146,7 @@ export default function DailyMedalCard() {
                           : "🥉"}
                       </span>
                       <span className="font-semibold text-white">
-                        {entry.profiles.username}
+                        {entry.username}
                       </span>
                     </div>
                     <span className="text-yellow-400 font-bold">

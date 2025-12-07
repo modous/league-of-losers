@@ -21,16 +21,22 @@ interface Friend {
   avatar_url?: string;
 }
 
-export default function ChatPage({ params }: { params: { friendId: string } }) {
+export default function ChatPage({ params }: { params: Promise<{ friendId: string }> }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [friend, setFriend] = useState<Friend | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [friendId, setFriendId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
   const router = useRouter();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Resolve params Promise
+  useEffect(() => {
+    params.then(p => setFriendId(p.friendId));
+  }, [params]);
 
   async function loadCurrentUser() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -39,11 +45,11 @@ export default function ChatPage({ params }: { params: { friendId: string } }) {
     }
   }
 
-  async function loadFriend() {
+  async function loadFriend(id: string) {
     const res = await fetch(`/api/friends`);
     if (res.ok) {
       const friends = await res.json();
-      const foundFriend = friends.find((f: Friend) => f.id === params.friendId);
+      const foundFriend = friends.find((f: Friend) => f.id === id);
       if (foundFriend) {
         setFriend(foundFriend);
       } else {
@@ -52,8 +58,8 @@ export default function ChatPage({ params }: { params: { friendId: string } }) {
     }
   }
 
-  async function loadMessages() {
-    const res = await fetch(`/api/chat?friendId=${params.friendId}`);
+  async function loadMessages(id: string) {
+    const res = await fetch(`/api/chat?friendId=${id}`);
     if (res.ok) {
       const data = await res.json();
       setMessages(data);
@@ -86,6 +92,8 @@ export default function ChatPage({ params }: { params: { friendId: string } }) {
   }
 
   useEffect(() => {
+    if (!friendId) return;
+
     async function fetchInitialData() {
       // Load current user
       const { data: { user } } = await supabase.auth.getUser();
@@ -97,7 +105,7 @@ export default function ChatPage({ params }: { params: { friendId: string } }) {
       const friendsRes = await fetch(`/api/friends`);
       if (friendsRes.ok) {
         const friends = await friendsRes.json();
-        const foundFriend = friends.find((f: Friend) => f.id === params.friendId);
+        const foundFriend = friends.find((f: Friend) => f.id === friendId);
         if (foundFriend) {
           setFriend(foundFriend);
         } else {
@@ -106,7 +114,7 @@ export default function ChatPage({ params }: { params: { friendId: string } }) {
       }
 
       // Load messages
-      const messagesRes = await fetch(`/api/chat?friendId=${params.friendId}`);
+      const messagesRes = await fetch(`/api/chat?friendId=${friendId}`);
       if (messagesRes.ok) {
         const data = await messagesRes.json();
         setMessages(data);
@@ -118,31 +126,39 @@ export default function ChatPage({ params }: { params: { friendId: string } }) {
 
     // Subscribe to new messages
     const channel = supabase
-      .channel("chat_messages")
+      .channel(`chat_messages_${friendId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "chat_messages",
+          filter: `sender_id=eq.${friendId}`,
         },
         (payload) => {
           const newMsg = payload.new as Message;
-          // Only add if it's between current user and this friend
-          if (
-            (newMsg.sender_id === params.friendId || newMsg.receiver_id === params.friendId)
-          ) {
-            setMessages((prev) => [...prev, newMsg]);
-            scrollToBottom();
-          }
+          console.log('📨 [Realtime] Received message from friend:', newMsg);
+          // Remove optimistic message if it exists and add real message
+          setMessages((prev) => {
+            const withoutOptimistic = prev.filter(m => !m.id.startsWith('temp-'));
+            // Only add if not already in the list
+            if (!withoutOptimistic.find(m => m.id === newMsg.id)) {
+              return [...withoutOptimistic, newMsg];
+            }
+            return withoutOptimistic;
+          });
+          scrollToBottom();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('🔔 [Realtime] Subscription status:', status);
+      });
 
     return () => {
+      console.log('🔌 [Realtime] Unsubscribing from channel');
       supabase.removeChannel(channel);
     };
-  }, [params.friendId]);
+  }, [friendId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -150,23 +166,47 @@ export default function ChatPage({ params }: { params: { friendId: string } }) {
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault();
-    if (!newMessage.trim() || sending) return;
+    if (!newMessage.trim() || sending || !friendId || !currentUserId) return;
 
     setSending(true);
+    
+    const messageText = newMessage.trim();
+    const tempId = `temp-${Date.now()}`;
+    
+    // Optimistically add message to UI immediately
+    const optimisticMessage: Message = {
+      id: tempId,
+      sender_id: currentUserId,
+      receiver_id: friendId,
+      message: messageText,
+      read: false,
+      created_at: new Date().toISOString(),
+    };
+    
+    setMessages((prev) => [...prev, optimisticMessage]);
+    setNewMessage("");
+    scrollToBottom();
+    
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        receiver_id: params.friendId,
-        message: newMessage.trim(),
+        receiver_id: friendId,
+        message: messageText,
       }),
     });
 
-    if (res.ok) {
-      setNewMessage("");
-    } else {
+    if (!res.ok) {
+      // Remove optimistic message on failure
+      setMessages((prev) => prev.filter(m => m.id !== tempId));
       alert("Failed to send message");
+      setNewMessage(messageText); // Restore message
+    } else {
+      // Replace optimistic message with real one from server
+      const realMessage = await res.json();
+      setMessages((prev) => prev.map(m => m.id === tempId ? realMessage : m));
     }
+    
     setSending(false);
   }
 
@@ -195,13 +235,13 @@ export default function ChatPage({ params }: { params: { friendId: string } }) {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
-      {/* Header */}
-      <div className="bg-zinc-900 border-b border-zinc-800 p-4 sticky top-0 z-10">
+    <div className="min-h-screen bg-black text-white">
+      {/* Sticky Header - Always visible below navbar */}
+      <div className="sticky top-24 md:top-28 z-40 bg-zinc-900 border-b border-zinc-800 p-4">
         <div className="max-w-4xl mx-auto flex items-center gap-4">
           <Link
             href="/friends"
-            className="text-yellow-400 hover:text-yellow-500 transition-colors"
+            className="text-yellow-400 hover:text-yellow-500 transition-colors font-semibold"
           >
             ← Back
           </Link>
@@ -219,8 +259,8 @@ export default function ChatPage({ params }: { params: { friendId: string } }) {
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4">
+      {/* Messages - Scrollable */}
+      <div className="p-4 pb-28">
         <div className="max-w-4xl mx-auto space-y-4">
           {messages.length === 0 ? (
             <div className="text-center py-12 text-zinc-400">
@@ -258,8 +298,8 @@ export default function ChatPage({ params }: { params: { friendId: string } }) {
         </div>
       </div>
 
-      {/* Message Input */}
-      <div className="bg-zinc-900 border-t border-zinc-800 p-4 sticky bottom-0">
+      {/* Message Input - Fixed at bottom */}
+      <div className="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-800 p-4 z-40">
         <form
           onSubmit={sendMessage}
           className="max-w-4xl mx-auto flex gap-2"
