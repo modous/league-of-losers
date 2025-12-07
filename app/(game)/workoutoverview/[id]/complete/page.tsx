@@ -34,12 +34,12 @@ export default async function WorkoutCompletePage({ params, searchParams }: { pa
   const userAge = profile?.age || 25; // Default 25 years if not set
 
   // Fetch workout exercises
-  const { data: workoutExercises } = await supabase
+  const { data: workoutExercises, error: workoutExercisesError } = await supabase
     .from("workout_exercises")
     .select(`
       id,
       exercise_id,
-      exercises!inner (
+      exercises (
         id,
         name,
         muscle_group
@@ -47,10 +47,20 @@ export default async function WorkoutCompletePage({ params, searchParams }: { pa
     `)
     .eq("workout_id", id);
 
+  console.log("🔍 [Complete Page] Workout Exercises:", workoutExercises);
+  console.log("🔍 [Complete Page] Workout Exercises Error:", workoutExercisesError);
+
   // Fetch the most recent workout session for this workout on this date
-  const { data: session } = await supabase
+  const { data: allSessions } = await supabase
     .from("workout_sessions")
-    .select("id")
+    .select("*")
+    .eq("workout_id", id);
+  
+  console.log("🔍 [Complete Page] All sessions for this workout:", allSessions);
+
+  const { data: session, error: sessionError } = await supabase
+    .from("workout_sessions")
+    .select("id, notes, completed_at, workout_date")
     .eq("workout_id", id)
     .eq("workout_date", workoutDate)
     .not("completed_at", "is", null)
@@ -59,7 +69,8 @@ export default async function WorkoutCompletePage({ params, searchParams }: { pa
     .single();
 
   console.log("🔍 [Complete Page] Workout Date:", workoutDate);
-  console.log("🔍 [Complete Page] Session ID:", session?.id);
+  console.log("🔍 [Complete Page] Session:", session);
+  console.log("🔍 [Complete Page] Session Error:", sessionError);
 
   if (!session) {
     console.log("⚠️ [Complete Page] No completed session found");
@@ -158,6 +169,7 @@ export default async function WorkoutCompletePage({ params, searchParams }: { pa
   return (
     <WorkoutSummary
       workoutId={id}
+      sessionId={session?.id || ""}
       workoutName={workout.name}
       workoutDate={workoutDate}
       totalCalories={totalCalories}
@@ -165,6 +177,7 @@ export default async function WorkoutCompletePage({ params, searchParams }: { pa
       totalExercises={totalExercises}
       totalSets={totalSets}
       exerciseStats={exerciseStats}
+      initialNotes={session?.notes || ""}
     />
   );
 }

@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { ApexOptions } from "apexcharts";
+import { createBrowserClient } from "@supabase/ssr";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
@@ -19,6 +21,7 @@ interface ExerciseStat {
 
 interface WorkoutSummaryProps {
   workoutId: string;
+  sessionId: string;
   workoutName: string;
   workoutDate: string;
   totalCalories: number;
@@ -26,10 +29,12 @@ interface WorkoutSummaryProps {
   totalExercises: number;
   totalSets: number;
   exerciseStats: ExerciseStat[];
+  initialNotes: string;
 }
 
 export default function WorkoutSummary({
   workoutId,
+  sessionId,
   workoutName,
   workoutDate,
   totalCalories,
@@ -37,8 +42,35 @@ export default function WorkoutSummary({
   totalExercises,
   totalSets,
   exerciseStats,
+  initialNotes,
 }: WorkoutSummaryProps) {
   const router = useRouter();
+  const [notes, setNotes] = useState(initialNotes);
+  const [saving, setSaving] = useState(false);
+
+  const saveNotes = async () => {
+    if (!sessionId) return;
+    
+    setSaving(true);
+    try {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+
+      const { error } = await supabase
+        .from("workout_sessions")
+        .update({ notes })
+        .eq("id", sessionId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error saving notes:", error);
+      alert("Kon notities niet opslaan");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // Intensity Chart Data
   const intensityOptions: ApexOptions = {
@@ -249,6 +281,21 @@ export default function WorkoutSummary({
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Workout Notes */}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 mb-6">
+          <h2 className="text-xl font-bold mb-4">Notities</h2>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            onBlur={saveNotes}
+            placeholder="Voeg notities toe over je workout... (bijv. hoe voelde je je, wat ging goed, waar kun je verbeteren)"
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 transition-all min-h-[120px] resize-y"
+          />
+          {saving && (
+            <div className="text-sm text-slate-400 mt-2">💾 Opslaan...</div>
+          )}
         </div>
 
         {/* Finish Button */}
