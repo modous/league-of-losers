@@ -18,6 +18,13 @@ interface FriendRequest {
   sender: Friend;
 }
 
+interface OutgoingRequest {
+  id: string;
+  receiver_id: string;
+  created_at: string;
+  receiver: Friend;
+}
+
 interface SearchResult {
   id: string;
   username: string;
@@ -28,6 +35,7 @@ interface SearchResult {
 export default function FriendsPage() {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [requests, setRequests] = useState<FriendRequest[]>([]);
+  const [outgoingRequests, setOutgoingRequests] = useState<OutgoingRequest[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +55,8 @@ export default function FriendsPage() {
     const res = await fetch("/api/friends/requests");
     if (res.ok) {
       const data = await res.json();
-      setRequests(data);
+      setRequests(data.incoming || []);
+      setOutgoingRequests(data.outgoing || []);
     }
   }
 
@@ -103,6 +112,18 @@ export default function FriendsPage() {
     }
   }
 
+  async function cancelRequest(requestId: string) {
+    const res = await fetch(`/api/friends/requests/${requestId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "reject" }),
+    });
+
+    if (res.ok) {
+      setOutgoingRequests(outgoingRequests.filter((r) => r.id !== requestId));
+    }
+  }
+
   useEffect(() => {
     async function fetchInitialData() {
       // Fetch friends
@@ -116,7 +137,8 @@ export default function FriendsPage() {
       const requestsRes = await fetch("/api/friends/requests");
       if (requestsRes.ok) {
         const requestsData = await requestsRes.json();
-        setRequests(requestsData);
+        setRequests(requestsData.incoming || []);
+        setOutgoingRequests(requestsData.outgoing || []);
       }
       
       // Fetch unread counts
@@ -214,11 +236,11 @@ export default function FriendsPage() {
           )}
         </div>
 
-        {/* Friend Requests */}
+        {/* Incoming Friend Requests */}
         {requests.length > 0 && (
           <div className="mb-8 bg-zinc-900 rounded-xl p-6 border border-zinc-800">
             <h2 className="text-xl font-bold mb-4 text-yellow-400">
-              Friend Requests ({requests.length})
+              Incoming Friend Requests ({requests.length})
             </h2>
             <div className="space-y-3">
               {requests.map((request) => (
@@ -248,6 +270,44 @@ export default function FriendsPage() {
                       Reject
                     </button>
                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Outgoing Friend Requests */}
+        {outgoingRequests.length > 0 && (
+          <div className="mb-8 bg-zinc-900 rounded-xl p-6 border border-zinc-800">
+            <h2 className="text-xl font-bold mb-4 text-orange-400">
+              Pending Requests ({outgoingRequests.length})
+            </h2>
+            <div className="space-y-3">
+              {outgoingRequests.map((request) => (
+                <div
+                  key={request.id}
+                  className="flex items-center justify-between bg-zinc-800 p-4 rounded-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-yellow-400 rounded-full flex items-center justify-center text-black font-bold">
+                      {request.receiver.username[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="font-semibold">{request.receiver.username}</div>
+                      {request.receiver.full_name && (
+                        <div className="text-sm text-zinc-400">
+                          {request.receiver.full_name}
+                        </div>
+                      )}
+                      <div className="text-xs text-orange-400 mt-1">Waiting for response...</div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => cancelRequest(request.id)}
+                    className="bg-zinc-700 hover:bg-zinc-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+                  >
+                    Cancel
+                  </button>
                 </div>
               ))}
             </div>

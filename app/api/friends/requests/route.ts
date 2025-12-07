@@ -1,6 +1,29 @@
 import { createServerSupabase } from "@/lib/supabase-server";
 import { NextResponse } from "next/server";
 
+interface Profile {
+  id: string;
+  username: string;
+  full_name: string;
+  avatar_url?: string;
+}
+
+interface IncomingRequest {
+  id: string;
+  sender_id: string;
+  created_at: string;
+  type: string;
+  sender?: Profile;
+}
+
+interface OutgoingRequest {
+  id: string;
+  receiver_id: string;
+  created_at: string;
+  type: string;
+  receiver?: Profile;
+}
+
 // GET - Fetch pending friend requests for the current user
 export async function GET() {
   const supabase = await createServerSupabase();
@@ -13,8 +36,8 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Get all pending requests where user is the receiver
-  const { data: requests, error } = await supabase
+  // Get all pending requests where user is the receiver (incoming)
+  const { data: incomingRequests, error } = await supabase
     .from("friend_requests")
     .select("id, sender_id, created_at")
     .eq("receiver_id", user.id)
@@ -25,28 +48,54 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  if (!requests || requests.length === 0) {
-    return NextResponse.json([]);
+  // Get all pending requests where user is the sender (outgoing)
+  const { data: outgoingRequests, error: outgoingError } = await supabase
+    .from("friend_requests")
+    .select("id, receiver_id, created_at")
+    .eq("sender_id", user.id)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  if (outgoingError) {
+    return NextResponse.json({ error: outgoingError.message }, { status: 500 });
   }
 
-  // Get sender profiles
-  const senderIds = requests.map((r) => r.sender_id);
-  const { data: profiles, error: profilesError } = await supabase
-    .from("profiles")
-    .select("id, username, full_name, avatar_url")
-    .in("id", senderIds);
+  // Get profiles for incoming requests (senders)
+  let incomingWithProfiles: IncomingRequest[] = [];
+  if (incomingRequests && incomingRequests.length > 0) {
+    const senderIds = incomingRequests.map((r) => r.sender_id);
+    const { data: senderProfiles } = await supabase
+      .from("profiles")
+      .select("id, username, full_name, avatar_url")
+      .in("id", senderIds);
 
-  if (profilesError) {
-    return NextResponse.json({ error: profilesError.message }, { status: 500 });
+    incomingWithProfiles = incomingRequests.map((req) => ({
+      ...req,
+      type: "incoming",
+      sender: senderProfiles?.find((p) => p.id === req.sender_id),
+    }));
   }
 
-  // Combine requests with profiles
-  const requestsWithProfiles = requests.map((req) => ({
-    ...req,
-    sender: profiles?.find((p) => p.id === req.sender_id),
-  }));
+  // Get profiles for outgoing requests (receivers)
+  let outgoingWithProfiles: OutgoingRequest[] = [];
+  if (outgoingRequests && outgoingRequests.length > 0) {
+    const receiverIds = outgoingRequests.map((r) => r.receiver_id);
+    const { data: receiverProfiles } = await supabase
+      .from("profiles")
+      .select("id, username, full_name, avatar_url")
+      .in("id", receiverIds);
 
-  return NextResponse.json(requestsWithProfiles);
+    outgoingWithProfiles = outgoingRequests.map((req) => ({
+      ...req,
+      type: "outgoing",
+      receiver: receiverProfiles?.find((p) => p.id === req.receiver_id),
+    }));
+  }
+
+  return NextResponse.json({
+    incoming: incomingWithProfiles,
+    outgoing: outgoingWithProfiles,
+  });
 }
 
 // POST - Send a friend request

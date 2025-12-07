@@ -429,6 +429,14 @@ export async function getAllWorkouts(): Promise<Workout[]> {
   console.log('🚀 [getAllWorkouts] Starting fetch...');
   const db = supabase();
 
+  // Get current user
+  const { data: { user } } = await db.auth.getUser();
+  if (!user) {
+    console.log('❌ [getAllWorkouts] No authenticated user');
+    return [];
+  }
+
+  console.log('👤 [getAllWorkouts] User ID:', user.id);
   console.log('📥 [getAllWorkouts] Querying workouts table...');
   const { data, error } = await db
     .from("workouts")
@@ -451,6 +459,7 @@ export async function getAllWorkouts(): Promise<Workout[]> {
         )
       )
     `)
+    .eq("user_id", user.id)
     .order("name", { ascending: true });
 
   console.log('📊 [getAllWorkouts] Query result:', { count: data?.length, error });

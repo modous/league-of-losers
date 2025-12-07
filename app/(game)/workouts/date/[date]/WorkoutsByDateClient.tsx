@@ -32,9 +32,20 @@ export default function WorkoutsByDateClient({ date }: { date: string }) {
       );
       
       console.log('🔎 [WorkoutsByDateClient] Checking workout_sessions for date:', date);
+      
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log('❌ [WorkoutsByDateClient] No authenticated user');
+        setLoading(false);
+        return;
+      }
+      
+      console.log('👤 [WorkoutsByDateClient] User ID:', user.id);
       const { data: sessions, error: sessionError } = await supabase
         .from('workout_sessions')
         .select('workout_id')
+        .eq('user_id', user.id)
         .eq('workout_date', date)
         .not('completed_at', 'is', null);
       
