@@ -142,13 +142,14 @@ export async function POST(request: Request) {
     );
   }
 
-  // Check if request already exists
+  // Check if pending request already exists
   const { data: existingRequest } = await supabase
     .from("friend_requests")
-    .select("id")
+    .select("id, status")
     .or(
       `and(sender_id.eq.${user.id},receiver_id.eq.${receiver_id}),and(sender_id.eq.${receiver_id},receiver_id.eq.${user.id})`
     )
+    .eq("status", "pending")
     .single();
 
   if (existingRequest) {
