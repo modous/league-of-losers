@@ -27,10 +27,11 @@ export default async function ExercisesPage() {
     return <div className="p-6 text-white">Niet ingelogd.</div>;
   }
 
-  // Oefeningen ophalen (alle exercises, niet gefilterd op user_id)
+  // Oefeningen ophalen (alleen eigen exercises en templates)
   const { data: exercises, error } = await supabase
     .from("exercises")
     .select("*")
+    .or(`user_id.eq.${user.id},user_id.is.null`)
     .order("name", { ascending: true });
 
   if (error) {

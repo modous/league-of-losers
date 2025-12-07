@@ -23,9 +23,13 @@ export default function NewWorkoutPage() {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       );
 
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+
       const { data } = await supabase
         .from("exercises")
         .select("id, name, muscle_group")
+        .or(`user_id.eq.${user?.id},user_id.is.null`)
         .order("name");
 
       if (data) {

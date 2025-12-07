@@ -382,9 +382,14 @@ export async function getWorkoutById(id: string): Promise<Workout | null> {
 export async function getAllExercises() {
   const db = supabase();
 
+  // Get current user
+  const { data: { user } } = await db.auth.getUser();
+
+  // Get user's own exercises + templates (user_id is null)
   const { data, error } = await db
     .from("exercises")
     .select("id, name, category, muscle_group, image_url, description")
+    .or(`user_id.eq.${user?.id},user_id.is.null`)
     .order("name");
 
   if (error) {
