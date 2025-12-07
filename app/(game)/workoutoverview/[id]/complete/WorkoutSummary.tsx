@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { ApexOptions } from "apexcharts";
@@ -47,6 +47,46 @@ export default function WorkoutSummary({
   const router = useRouter();
   const [notes, setNotes] = useState(initialNotes);
   const [saving, setSaving] = useState(false);
+
+  // Update workout session metrics on mount
+  useEffect(() => {
+    async function updateSessionMetrics() {
+      if (!sessionId) return;
+
+      try {
+        const supabase = createBrowserClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+
+        console.log('💾 Updating session metrics:', {
+          sessionId,
+          intensity: avgIntensity,
+          calories: totalCalories,
+          exercises_count: totalExercises
+        });
+
+        const { error } = await supabase
+          .from("workout_sessions")
+          .update({
+            intensity: avgIntensity,
+            calories: totalCalories,
+            exercises_count: totalExercises,
+          })
+          .eq("id", sessionId);
+
+        if (error) {
+          console.error('❌ Error updating session metrics:', error);
+        } else {
+          console.log('✅ Session metrics updated successfully');
+        }
+      } catch (error) {
+        console.error("Error updating session metrics:", error);
+      }
+    }
+
+    updateSessionMetrics();
+  }, [sessionId, totalCalories, avgIntensity, totalExercises]);
 
   const saveNotes = async () => {
     if (!sessionId) return;

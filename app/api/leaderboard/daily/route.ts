@@ -72,7 +72,7 @@ export async function POST(request: Request) {
   // Get all completed workouts for the target date
   const { data: sessions, error: sessionsError } = await supabase
     .from("workout_sessions")
-    .select("user_id, intensity, calories, exercises_count")
+    .select("user_id, intensity, calories, exercises_count, workout_date, completed_at")
     .eq("workout_date", targetDate)
     .not("completed_at", "is", null);
 
