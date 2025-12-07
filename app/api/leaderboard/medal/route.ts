@@ -47,7 +47,16 @@ export async function GET(request: Request) {
     .limit(3);
 
   // Get profiles for top 3 users
-  let top3 = [];
+  interface Top3Entry {
+    user_id: string;
+    rank: number;
+    medal: string | null;
+    score: number;
+    username?: string;
+    full_name?: string | null;
+  }
+
+  let top3: Top3Entry[] = [];
   if (top3Leaderboard && top3Leaderboard.length > 0) {
     const userIds = top3Leaderboard.map(entry => entry.user_id);
     const { data: profilesData } = await supabase
