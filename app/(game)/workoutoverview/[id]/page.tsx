@@ -5,7 +5,7 @@ import { BackButton } from "./_components/BackButton";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default async function WorkoutDetail({ params }: { params: { id: string } }) {
+export default async function WorkoutDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createServerSupabase();
 

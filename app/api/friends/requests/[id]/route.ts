@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 // PATCH - Accept or reject a friend request
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const supabase = await createServerSupabase();
 
@@ -17,6 +17,7 @@ export async function PATCH(
   }
 
   const { action } = await request.json(); // 'accept' or 'reject'
+  const { id } = await params;
 
   if (!action || !["accept", "reject"].includes(action)) {
     return NextResponse.json(
@@ -29,7 +30,7 @@ export async function PATCH(
   const { data: friendRequest, error: fetchError } = await supabase
     .from("friend_requests")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("receiver_id", user.id)
     .eq("status", "pending")
     .single();
@@ -68,7 +69,7 @@ export async function PATCH(
       status: action === "accept" ? "accepted" : "rejected",
       updated_at: new Date().toISOString(),
     })
-    .eq("id", params.id);
+    .eq("id", id);
 
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 500 });
@@ -80,7 +81,7 @@ export async function PATCH(
 // DELETE - Delete/cancel a friend request
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const supabase = await createServerSupabase();
 
@@ -92,10 +93,12 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { id } = await params;
+
   const { error } = await supabase
     .from("friend_requests")
     .delete()
-    .eq("id", params.id)
+    .eq("id", id)
     .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
 
   if (error) {

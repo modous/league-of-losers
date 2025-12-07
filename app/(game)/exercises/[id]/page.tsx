@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import ExerciseEditForm from "./ExerciseEditForm";
 
-export default async function ExerciseDetailPage({ params }: { params: { id: string } }) {
+export default async function ExerciseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createServerSupabase();
 

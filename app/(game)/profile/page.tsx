@@ -4,8 +4,9 @@ import ProfileForm from "@/components/profile/ProfileForm";
 export default async function ProfilePage({
   searchParams,
 }: {
-  searchParams: { setup?: string };
+  searchParams: Promise<{ setup?: string }>;
 }) {
+  const { setup } = await searchParams;
   const supabase = await createServerSupabase();
   
   const { data: { user } } = await supabase.auth.getUser();
@@ -32,7 +33,7 @@ export default async function ProfilePage({
     .eq("id", user.id)
     .single();
 
-  const isSetup = searchParams.setup === "true";
+  const isSetup = setup === "true";
   const weight = user.user_metadata?.weight;
   const height = user.user_metadata?.height;
   const age = user.user_metadata?.age;
