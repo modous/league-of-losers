@@ -34,10 +34,11 @@ export async function GET() {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  // Haal zowel user exercises als default exercises op
+  // Haal alleen user's eigen exercises en default template exercises op
   const { data: exercises, error } = await supabase
     .from("exercises")
-    .select("id, name, muscle_group")
+    .select("id, name, muscle_group, user_id")
+    .or(`user_id.eq.${user.id},user_id.is.null`)
     .order("name");
 
   if (error) {
