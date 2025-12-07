@@ -19,6 +19,8 @@ export default function Navbar() {
     { name: 'Dashboard', href: '/dashboard' },
     { name: 'Workouts Overzicht', href: '/workoutoverview' },
     { name: 'Exercises', href: '/exercises' },
+    { name: 'Leaderboard', href: '/leaderboard' },
+    { name: 'Friends', href: '/friends' },
     { name: 'Profiel', href: '/profile' },
    
   ];

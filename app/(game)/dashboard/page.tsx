@@ -1,5 +1,6 @@
 import ProgressChart from "@/components/dashboard/ProgressChart";
 import WeekCalendar from "./WeekCalendar";
+import DailyMedalCard from "@/components/dashboard/DailyMedalCard";
 import Link from "next/link";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { Calendar, TrendingUp, Flame, Dumbbell, Trophy, Target } from "lucide-react";
@@ -13,8 +14,14 @@ export default async function Dashboard() {
     return <div className="text-white p-6">Not authenticated</div>;
   }
   
-  // Get username from email or user metadata
-  const username = user.user_metadata?.username || user.email?.split('@')[0] || 'User';
+  // Get username from profiles table
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", user.id)
+    .single();
+
+  const username = profile?.username || user.email?.split('@')[0] || 'User';
   
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -160,6 +167,11 @@ export default async function Dashboard() {
             <h2 className="text-2xl font-bold text-white">Deze Week</h2>
           </div>
           <WeekCalendar />
+        </div>
+
+        {/* Medal Card */}
+        <div className="mb-8">
+          <DailyMedalCard />
         </div>
 
         {/* Progress Chart */}
