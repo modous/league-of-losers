@@ -152,7 +152,16 @@ export async function getWeekWorkouts(start: string, end: string) {
 
   console.log("🔵 [getWeekWorkouts] Fetching workouts between:", start, "and", end);
 
-  // Query workout_sessions for the date range
+  // Get current user
+  const { data: { user } } = await db.auth.getUser();
+  if (!user) {
+    console.log("❌ [getWeekWorkouts] No authenticated user");
+    return [];
+  }
+
+  console.log("👤 [getWeekWorkouts] User ID:", user.id);
+
+  // Query workout_sessions for the date range AND current user
   const { data: sessions } = await db
     .from("workout_sessions")
     .select(`
@@ -168,6 +177,7 @@ export async function getWeekWorkouts(start: string, end: string) {
         )
       )
     `)
+    .eq("user_id", user.id)
     .gte("workout_date", start)
     .lte("workout_date", end)
     .not("completed_at", "is", null)
@@ -180,10 +190,11 @@ export async function getWeekWorkouts(start: string, end: string) {
   // Get all session IDs to fetch their logs
   const sessionIds = sessions.map(s => s.id);
 
-  // Fetch all exercise logs for these sessions
+  // Fetch all exercise logs for these sessions (also filter by user_id for extra security)
   const { data: allLogs } = await db
     .from("exercise_logs")
     .select("session_id, exercise_id, reps, weight")
+    .eq("user_id", user.id)
     .in("session_id", sessionIds);
 
   console.log("🔵 [getWeekWorkouts] Exercise logs found:", allLogs?.length);
