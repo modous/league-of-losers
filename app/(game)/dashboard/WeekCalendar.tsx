@@ -163,7 +163,7 @@ export default function WeekCalendar() {
           ref={scrollRef}
           className="
             flex sm:grid sm:grid-cols-7
-            gap-3 overflow-x-auto py-4 pb-6
+            gap-3 overflow-x-auto sm:overflow-visible py-4 pb-6 px-1
             scrollbar-hide snap-x snap-mandatory
           "
         >
