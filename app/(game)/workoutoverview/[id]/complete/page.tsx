@@ -21,6 +21,18 @@ export default async function WorkoutCompletePage({ params, searchParams }: { pa
     redirect("/dashboard");
   }
 
+  // Fetch user profile data
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("weight, height, age")
+    .eq("id", user?.id || "")
+    .single();
+
+  const userWeight = profile?.weight || 75; // Default 75kg if not set
+  const userHeight = profile?.height || 175; // Default 175cm if not set
+  const userAge = profile?.age || 25; // Default 25 years if not set
+
   // Fetch workout exercises
   const { data: workoutExercises } = await supabase
     .from("workout_exercises")
@@ -93,13 +105,36 @@ export default async function WorkoutCompletePage({ params, searchParams }: { pa
     const totalWeight = logs.reduce((sum, log) => sum + (log.weight || 0) * (log.reps || 0), 0);
     const maxWeight = Math.max(...logs.map(log => log.weight || 0), 0);
     
-    // Simple calorie calculation: (total weight lifted in kg * 0.05)
-    const estimatedCalories = Math.round(totalWeight * 0.05);
+    // Calculate workout duration estimate (minutes)
+    // Assume 2 minutes per set (including rest time)
+    const estimatedDurationMinutes = totalSets * 2;
     
-    // Intensity score (0-100): based on sets, reps, and weight
-    const intensityScore = Math.min(100, Math.round(
-      (totalSets * 5) + (totalReps * 0.5) + (maxWeight * 0.3)
-    ));
+    // MET values for resistance training
+    // Light: 3.5, Moderate: 5.0, Vigorous: 6.0
+    // Determine MET based on intensity
+    const avgWeightPerRep = totalWeight > 0 && totalReps > 0 ? totalWeight / totalReps : 0;
+    const relativeIntensity = avgWeightPerRep / userWeight; // weight lifted relative to bodyweight
+    
+    let metValue = 3.5; // Light
+    if (relativeIntensity > 0.5) {
+      metValue = 6.0; // Vigorous
+    } else if (relativeIntensity > 0.2) {
+      metValue = 5.0; // Moderate
+    }
+    
+    // Calorie calculation using MET formula
+    // Calories = MET * weight(kg) * time(hours)
+    const estimatedCalories = Math.round(metValue * userWeight * (estimatedDurationMinutes / 60));
+    
+    // Intensity score (0-100): based on relative strength and volume
+    // Factors:
+    // 1. Relative strength: weight lifted vs bodyweight (0-40 points)
+    // 2. Volume: total reps (0-30 points)
+    // 3. Consistency: number of sets (0-30 points)
+    const strengthScore = Math.min(40, relativeIntensity * 80);
+    const volumeScore = Math.min(30, totalReps * 0.5);
+    const setScore = Math.min(30, totalSets * 5);
+    const intensityScore = Math.min(100, Math.round(strengthScore + volumeScore + setScore));
 
     return {
       exerciseName: exercise.name,

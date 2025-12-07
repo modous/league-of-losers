@@ -90,30 +90,26 @@ export default function WorkoutsByDateClient({ date }: { date: string }) {
                   key={w.id}
                   className="border-2 border-green-500 rounded-lg bg-zinc-900 p-4 hover:border-green-400 transition"
                 >
-                  <Link href={`/workoutoverview/${w.id}`}>
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <h2 className="font-bold text-lg">{w.name || `Workout #${w.id}`}</h2>
-                        <span className="text-xs bg-green-500 text-black px-2 py-1 rounded-full font-semibold">
-                          Gepland
-                        </span>
-                      </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <h2 className="font-bold text-lg">{w.name || `Workout #${w.id}`}</h2>
+                    <span className="text-xs bg-green-500 text-black px-2 py-1 rounded-full font-semibold">
+                      ✓ Voltooid
+                    </span>
+                  </div>
 
-                      <p className="text-slate-400 text-sm mt-1">
-                        Spiergroepen: {w.muscle_groups?.join(", ") || "–"}
-                      </p>
+                  <p className="text-slate-400 text-sm mt-1">
+                    Spiergroepen: {w.muscle_groups?.join(", ") || "–"}
+                  </p>
 
-                      <p className="text-slate-400 text-sm mt-2">
-                        {w.exercises.length} oefening(en)
-                      </p>
-                    </div>
-                  </Link>
+                  <p className="text-slate-400 text-sm mt-2">
+                    {w.exercises.length} oefening(en)
+                  </p>
 
                   <Link
-                    href={`/workoutoverview/${w.id}/start?date=${date}`}
-                    className="mt-3 block text-center bg-green-500 hover:bg-green-600 text-black font-bold py-2 rounded-lg"
+                    href={`/workoutoverview/${w.id}/complete?date=${date}`}
+                    className="mt-3 block text-center bg-green-500 hover:bg-green-600 text-black font-bold py-2 rounded-lg transition-colors"
                   >
-                    Start Workout
+                    📊 Bekijk resultaten
                   </Link>
                 </div>
               ))}
