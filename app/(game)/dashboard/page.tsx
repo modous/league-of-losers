@@ -193,7 +193,7 @@ export default async function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Link 
             href={`/workouts/date/${today}`}
-            className="group relative overflow-hidden bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl hover:shadow-yellow-400/50"
+            className="group relative overflow-hidden bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105"
           >
             <div className="flex items-center justify-center gap-3">
               <Dumbbell size={24} />
@@ -203,7 +203,7 @@ export default async function Dashboard() {
           
           <Link 
             href="/exercises" 
-            className="group relative overflow-hidden bg-zinc-900 hover:bg-zinc-800 border-2 border-yellow-400 text-yellow-400 font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl hover:shadow-yellow-400/30"
+            className="group relative overflow-hidden bg-zinc-900 hover:bg-zinc-800 border-2 border-yellow-400 text-yellow-400 font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105"
           >
             <div className="flex items-center justify-center gap-3">
               <Target size={24} />
