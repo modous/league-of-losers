@@ -8,12 +8,12 @@ export default async function StartWorkoutPage({
   params,
   searchParams 
 }: { 
-  params: { id: string };
-  searchParams: { date?: string };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ date?: string }>;
 }) {
   const { id } = await params;
-  const resolvedSearchParams = await searchParams;
-  const workoutDate = resolvedSearchParams.date || new Date().toISOString().split('T')[0];
+  const { date } = await searchParams;
+  const workoutDate = date || new Date().toISOString().split('T')[0];
   const supabase = await createServerSupabase();
 
   // Fetch workout with exercises

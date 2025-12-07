@@ -4,10 +4,10 @@ import WorkoutSummary from "./WorkoutSummary";
 
 export const dynamic = "force-dynamic";
 
-export default async function WorkoutCompletePage({ params, searchParams }: { params: { id: string }; searchParams: { date?: string } }) {
+export default async function WorkoutCompletePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ date?: string }> }) {
   const { id } = await params;
-  const resolvedSearchParams = await searchParams;
-  const workoutDate = resolvedSearchParams.date || new Date().toISOString().split('T')[0];
+  const { date } = await searchParams;
+  const workoutDate = date || new Date().toISOString().split('T')[0];
   const supabase = await createServerSupabase();
 
   // Fetch workout details

@@ -27,6 +27,22 @@ export async function GET(request: Request) {
 
   if (code) {
     await supabase.auth.exchangeCodeForSession(code);
+    
+    // Check if user has a profile with username
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", user.id)
+        .single();
+      
+      // Redirect to profile if no username is set
+      if (!profile || !profile.username) {
+        return NextResponse.redirect(new URL("/profile?setup=true", request.url));
+      }
+    }
   }
 
   return NextResponse.redirect(new URL("/dashboard", request.url));

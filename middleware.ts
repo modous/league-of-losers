@@ -29,6 +29,9 @@ export async function middleware(req: NextRequest) {
   const protectedRoutes = [
     "/dashboard",
     "/exercises",
+    "/workouts",
+    "/friends",
+    "/leaderboard",
   ];
 
   const isProtected = protectedRoutes.some((r) =>
@@ -39,11 +42,29 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
+  // Check if user has a username (except for profile page)
+  if (session && isProtected && !req.nextUrl.pathname.startsWith("/profile")) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", session.user.id)
+      .single();
+
+    if (!profile || !profile.username) {
+      return NextResponse.redirect(new URL("/profile?setup=true", req.url));
+    }
+  }
+
   return res;
 }
 
 export const config = {
   matcher: [
     "/dashboard/:path*",
+    "/exercises/:path*",
+    "/workouts/:path*",
+    "/friends/:path*",
+    "/leaderboard/:path*",
+    "/profile/:path*",
   ],
 };

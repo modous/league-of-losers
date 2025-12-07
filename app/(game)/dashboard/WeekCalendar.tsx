@@ -11,6 +11,7 @@ interface WeekWorkout {
   muscle_groups?: string[];
   calories?: number;
   intensity?: number;
+  medal?: "gold" | "silver" | "bronze" | null;
 }
 
 export default function WeekCalendar() {
@@ -59,7 +60,44 @@ export default function WeekCalendar() {
       const end = format(currentWeek[6]);
 
       const data = await getWeekWorkouts(start, end);
-      setWeekData(data);
+      
+      // Fetch medals for the week
+      const medalsPromises = data.map(async (workout) => {
+        if (!workout.trained) return { ...workout, medal: null };
+        
+        try {
+          const res = await fetch(`/api/leaderboard/medal?date=${workout.date}`);
+          if (res.ok) {
+            const medalData = await res.json();
+            
+            // If no user entry exists, try to calculate the leaderboard
+            if (!medalData.userEntry) {
+              const calcRes = await fetch('/api/leaderboard/daily', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date: workout.date }),
+              });
+              
+              if (calcRes.ok) {
+                // Retry getting the medal after calculation
+                const retryRes = await fetch(`/api/leaderboard/medal?date=${workout.date}`);
+                if (retryRes.ok) {
+                  const retryData = await retryRes.json();
+                  return { ...workout, medal: retryData.userEntry?.medal || null };
+                }
+              }
+            } else {
+              return { ...workout, medal: medalData.userEntry?.medal || null };
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching medal for ${workout.date}:`, error);
+        }
+        return { ...workout, medal: null };
+      });
+
+      const dataWithMedals = await Promise.all(medalsPromises);
+      setWeekData(dataWithMedals);
       setLoading(false);
     }
 
@@ -96,6 +134,13 @@ export default function WeekCalendar() {
   }, [currentWeek, weekData]); // 👈 weekData ipv workouts
 
   const weekDays = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
+
+  function getMedalEmoji(medal: "gold" | "silver" | "bronze" | null | undefined) {
+    if (medal === "gold") return "🥇";
+    if (medal === "silver") return "🥈";
+    if (medal === "bronze") return "🥉";
+    return null;
+  }
 
   function nextWeek() {
     const d = new Date(currentWeek[0]);
@@ -197,6 +242,13 @@ export default function WeekCalendar() {
 
                 {workout?.trained ? (
                   <div className="space-y-1.5">
+                    {/* Medal Display - Show prominently at top if earned */}
+                    {workout.medal && (
+                      <div className="text-3xl mb-2 animate-bounce">
+                        {getMedalEmoji(workout.medal)}
+                      </div>
+                    )}
+                    
                     <div className="flex items-center justify-center gap-1.5 text-green-400 text-xs font-semibold bg-green-500/10 rounded-full py-1 px-2">
                       <span>✓</span>
                       <span>{workout.exercises_count}</span>
